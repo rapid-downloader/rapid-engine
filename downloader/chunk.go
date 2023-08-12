@@ -53,13 +53,13 @@ func (r *progressBar) Close() error {
 type chunk struct {
 	entry      entry.Entry
 	setting    setting.Setting
+	logger     logger.Logger
 	wg         *sync.WaitGroup
 	path       string
 	index      int
 	start      int64
 	end        int64
 	size       int64
-	logger     logger.Logger
 	onprogress OnProgress
 }
 
@@ -74,7 +74,6 @@ func calculatePosition(entry entry.Entry, chunkSize int64, index int) (int64, in
 	return start, end
 }
 
-// TODO: test this
 func resumePosition(location string) int64 {
 	file, err := os.Stat(location)
 	if err != nil {
@@ -93,8 +92,6 @@ func newChunk(entry entry.Entry, index int, setting setting.Setting, wg *sync.Wa
 	chunkSize := entry.Size() / int64(entry.ChunkLen())
 	start, end := calculatePosition(entry, chunkSize, index)
 
-	logger := logger.New(setting)
-
 	return &chunk{
 		path:       filepath.Join(setting.DownloadLocation(), fmt.Sprintf("%s-%d", entry.ID(), index)),
 		entry:      entry,
@@ -104,7 +101,7 @@ func newChunk(entry entry.Entry, index int, setting setting.Setting, wg *sync.Wa
 		start:      start,
 		end:        end,
 		size:       chunkSize,
-		logger:     logger,
+		logger:     logger.New(setting),
 		onprogress: nil,
 	}
 }
@@ -184,8 +181,8 @@ func (c *chunk) getDownloadFile(ctx context.Context) (io.ReadCloser, error) {
 	bytesRange := fmt.Sprintf("bytes=%d-%d", c.start, c.end)
 	req.Header.Add("Range", bytesRange)
 
-	if entryCookie, ok := c.entry.(entry.EntryCookies); ok && len(entryCookie.Cookies()) > 0 {
-		for _, cookie := range entryCookie.Cookies() {
+	if cookieJar, ok := c.entry.(entry.CookieJar); ok && len(cookieJar.Cookies()) > 0 {
+		for _, cookie := range cookieJar.Cookies() {
 			req.AddCookie(cookie)
 		}
 	}

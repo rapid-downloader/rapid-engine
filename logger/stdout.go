@@ -10,7 +10,7 @@ type stdLogger struct{}
 
 const StdOut = "stdout"
 
-// StdLogger will log into std out
+// stdoutLogger will log into std out
 func stdoutLogger(_ setting.Setting) Logger {
 	return &stdLogger{}
 }

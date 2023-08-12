@@ -27,11 +27,15 @@ type (
 		Refresh() error
 	}
 
-	EntryCookies interface {
+	CookieJar interface {
 		Cookies() []*http.Cookie
 	}
 
 	entry struct {
+		logger.Logger
+		ctx       context.Context
+		cancel    context.CancelFunc
+		cookies   []*http.Cookie
 		id        string
 		name      string
 		location  string
@@ -40,10 +44,6 @@ type (
 		url       string
 		resumable bool
 		chunkLen  int
-		logger    logger.Logger
-		ctx       context.Context
-		cancel    context.CancelFunc
-		cookies   []*http.Cookie
 	}
 
 	option struct {
@@ -111,7 +111,7 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		filetype:  filetype,
 		url:       url,
 		size:      res.ContentLength,
-		logger:    logger,
+		Logger:    logger,
 		chunkLen:  chunklen,
 		ctx:       ctx,
 		cancel:    cancel,
@@ -163,20 +163,18 @@ func (e *entry) Cancel() {
 func (e *entry) Expired() bool {
 	req, err := http.NewRequest("HEAD", e.url, nil)
 
-	if len(e.cookies) > 0 {
-		for _, cookie := range e.cookies {
-			req.AddCookie(cookie)
-		}
+	for _, cookie := range e.cookies {
+		req.AddCookie(cookie)
 	}
 
 	if err != nil {
-		e.logger.Print("Could not prepare for checking url expiration:", err.Error())
+		e.Print("Could not prepare for checking url expiration:", err.Error())
 		return true
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		e.logger.Print("Error checking url expiration:", err.Error())
+		e.Print("Error checking url expiration:", err.Error())
 	}
 
 	return res.StatusCode != http.StatusOK && res.ContentLength <= 0
