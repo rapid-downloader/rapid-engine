@@ -58,8 +58,9 @@ type (
 	}
 
 	Body struct {
-		Item    DownloadItem `json:"item"`
-		Cookies []Cookie     `json:"cookies"`
+		Item      DownloadItem `json:"item"`
+		Cookies   []Cookie     `json:"cookies"`
+		UserAgent string       `json:"userAgent"`
 	}
 )
 
@@ -93,12 +94,18 @@ func main() {
 			}
 		}
 
-		entry, err := entry.Fetch(body.Item.Url, entry.AddCookies(cookies))
+		entry, err := entry.Fetch(
+			body.Item.Url,
+			entry.AddCookies(cookies),
+			entry.AddHeaders(entry.Headers{
+				"User-Agent":   body.UserAgent,
+				"Content-Type": body.Item.Mime,
+			}),
+		)
+
 		if err != nil {
 			log.Println("Error fetching url:", err)
 		}
-
-		log.Println(entry)
 
 		dl := downloader.New(downloader.Default)
 		if watcher, ok := dl.(downloader.Watcher); ok {

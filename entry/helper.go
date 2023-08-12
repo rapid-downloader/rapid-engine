@@ -114,10 +114,6 @@ func filename(r *http.Response) string {
 
 // calculatePartition calculates how many chunks will be for certain size
 func calculatePartition(size int64, setting setting.Setting) int {
-	if size == -1 {
-		return 1
-	}
-
 	if size < setting.MinChunkSize() {
 		return 1
 	}

@@ -64,6 +64,10 @@ type chunk struct {
 }
 
 func calculatePosition(entry entry.Entry, chunkSize int64, index int) (int64, int64) {
+	if entry.Size() == -1 {
+		return -1, -1
+	}
+
 	start := int64(index * int(chunkSize))
 	end := start + (chunkSize - 1)
 
@@ -107,14 +111,8 @@ func newChunk(entry entry.Entry, index int, setting setting.Setting, wg *sync.Wa
 }
 
 func (c *chunk) download(ctx context.Context) error {
-	c.logger.Print("Downloading chunk", c.index, "from", c.start, "to", c.end, fmt.Sprintf("(~%d MB)", (c.end-c.start)/(1024*1024)))
-
 	defer c.wg.Done()
 	start := time.Now()
-
-	if c.start >= c.end {
-		return nil
-	}
 
 	srcFile, err := c.getDownloadFile(ctx)
 	if err != nil {
@@ -178,12 +176,22 @@ func (c *chunk) getDownloadFile(ctx context.Context) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	bytesRange := fmt.Sprintf("bytes=%d-%d", c.start, c.end)
-	req.Header.Add("Range", bytesRange)
+	if c.start != -1 && c.end != -1 {
+		bytesRange := fmt.Sprintf("bytes=%d-%d", c.start, c.end)
+		req.Header.Add("Range", bytesRange)
+
+		c.logger.Print("Downloading chunk", c.index, "from", c.start, "to", c.end, fmt.Sprintf("(~%d MB)", (c.end-c.start)/(1024*1024)))
+	}
 
 	if cookieJar, ok := c.entry.(entry.CookieJar); ok && len(cookieJar.Cookies()) > 0 {
 		for _, cookie := range cookieJar.Cookies() {
 			req.AddCookie(cookie)
+		}
+	}
+
+	if ext, ok := c.entry.(entry.Extension); ok {
+		for key, value := range ext.Headers() {
+			req.Header.Add(key, value)
 		}
 	}
 

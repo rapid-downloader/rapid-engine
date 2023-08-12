@@ -27,6 +27,11 @@ type (
 		Refresh() error
 	}
 
+	Headers map[string]string
+
+	Extension interface {
+		Headers() Headers
+	}
 	CookieJar interface {
 		Cookies() []*http.Cookie
 	}
@@ -44,11 +49,13 @@ type (
 		url       string
 		resumable bool
 		chunkLen  int
+		headers   Headers
 	}
 
 	option struct {
 		setting setting.Setting
 		cookies []*http.Cookie
+		headers Headers
 	}
 
 	Options func(o *option)
@@ -63,6 +70,12 @@ func UseSetting(setting setting.Setting) Options {
 func AddCookies(cookies []*http.Cookie) Options {
 	return func(o *option) {
 		o.cookies = cookies
+	}
+}
+
+func AddHeaders(headers Headers) Options {
+	return func(o *option) {
+		o.headers = headers
 	}
 }
 
@@ -88,6 +101,10 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		req.AddCookie(cookie)
 	}
 
+	for key, value := range opt.headers {
+		req.Header.Add(key, value)
+	}
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		logger.Print("Error fetching url:", err.Error())
@@ -104,19 +121,25 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		chunklen = 1
 	}
 
+	size := res.ContentLength
+	if size == -1 {
+		logger.Print("Downloading with unknown size...")
+	}
+
 	return &entry{
 		id:        randID(10),
 		name:      filename,
 		location:  location,
 		filetype:  filetype,
 		url:       url,
-		size:      res.ContentLength,
+		size:      size,
 		Logger:    logger,
 		chunkLen:  chunklen,
 		ctx:       ctx,
 		cancel:    cancel,
 		resumable: resumable,
 		cookies:   opt.cookies,
+		headers:   opt.headers,
 	}, nil
 }
 
@@ -160,6 +183,7 @@ func (e *entry) Cancel() {
 	e.cancel()
 }
 
+// TODO: test this
 func (e *entry) Expired() bool {
 	req, err := http.NewRequest("HEAD", e.url, nil)
 
@@ -177,7 +201,7 @@ func (e *entry) Expired() bool {
 		e.Print("Error checking url expiration:", err.Error())
 	}
 
-	return res.StatusCode != http.StatusOK && res.ContentLength <= 0
+	return res.StatusCode != http.StatusOK && res.ContentLength == 0
 }
 
 func (e *entry) Refresh() error {
@@ -205,4 +229,8 @@ func (e *entry) String() string {
 
 func (e *entry) Cookies() []*http.Cookie {
 	return e.cookies
+}
+
+func (e *entry) Headers() Headers {
+	return e.headers
 }

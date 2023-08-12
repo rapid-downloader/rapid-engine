@@ -204,6 +204,8 @@ func (dl *localDownloader) createFile(entry entry.Entry) error {
 			dl.Print("Error removing temp file:", err.Error())
 			return err
 		}
+
+		tmpFile.Close()
 	}
 
 	return nil
