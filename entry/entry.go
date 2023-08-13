@@ -56,6 +56,7 @@ type (
 		setting setting.Setting
 		cookies []*http.Cookie
 		headers Headers
+		queue   Queue
 	}
 
 	Options func(o *option)
@@ -76,6 +77,12 @@ func AddCookies(cookies []*http.Cookie) Options {
 func AddHeaders(headers Headers) Options {
 	return func(o *option) {
 		o.headers = headers
+	}
+}
+
+func UseQueue(queue Queue) Options {
+	return func(o *option) {
+		o.queue = queue
 	}
 }
 
@@ -127,7 +134,7 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		logger.Print("Downloading with unknown size...")
 	}
 
-	return &entry{
+	entry := &entry{
 		id:        randID(10),
 		name:      filename,
 		location:  location,
@@ -141,7 +148,17 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		resumable: resumable,
 		cookies:   opt.cookies,
 		headers:   opt.headers,
-	}, nil
+	}
+
+	if opt.queue == nil {
+		return entry, nil
+	}
+
+	if err := opt.queue.Push(entry); err != nil {
+		return nil, err
+	}
+
+	return entry, nil
 }
 
 func (e *entry) ID() string {
