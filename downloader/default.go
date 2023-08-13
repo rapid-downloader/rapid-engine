@@ -116,6 +116,10 @@ func (dl *localDownloader) Resume(entry entry.Entry) error {
 		}
 
 		chunk.start += resumePosition(chunk.path)
+		if dl.onprogress != nil {
+			chunk.onProgress(dl.onprogress)
+		}
+
 		chunks = append(chunks, chunk)
 	}
 

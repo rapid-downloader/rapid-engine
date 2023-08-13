@@ -29,18 +29,15 @@ type (
 
 	Headers map[string]string
 
-	Extension interface {
-		Headers() Headers
-	}
-	CookieJar interface {
-		Cookies() []*http.Cookie
+	RequestClient interface {
+		Request() *http.Request
 	}
 
 	entry struct {
 		logger.Logger
 		ctx       context.Context
 		cancel    context.CancelFunc
-		cookies   []*http.Cookie
+		request   *http.Request
 		id        string
 		name      string
 		location  string
@@ -49,7 +46,6 @@ type (
 		url       string
 		resumable bool
 		chunkLen  int
-		headers   Headers
 	}
 
 	option struct {
@@ -146,8 +142,7 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		ctx:       ctx,
 		cancel:    cancel,
 		resumable: resumable,
-		cookies:   opt.cookies,
-		headers:   opt.headers,
+		request:   req,
 	}
 
 	if opt.queue == nil {
@@ -203,27 +198,19 @@ func (e *entry) Cancel() {
 
 // TODO: test this
 func (e *entry) Expired() bool {
-	req, err := http.NewRequest("HEAD", e.url, nil)
-
-	for _, cookie := range e.cookies {
-		req.AddCookie(cookie)
-	}
-
-	if err != nil {
-		e.Print("Could not prepare for checking url expiration:", err.Error())
-		return true
-	}
+	req := e.request.Clone(context.Background())
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		e.Print("Error checking url expiration:", err.Error())
 	}
 
-	return res.StatusCode != http.StatusOK && res.ContentLength == 0
+	return res.StatusCode != http.StatusOK && res.ContentLength <= 0
 }
 
 func (e *entry) Refresh() error {
 	e.ctx, e.cancel = context.WithCancel(context.Background())
+
 	// TODO: do something else, such as refresh the link (future feature if browser extenstion is present)
 
 	return nil
@@ -245,10 +232,6 @@ func (e *entry) String() string {
 	return buffer.String()
 }
 
-func (e *entry) Cookies() []*http.Cookie {
-	return e.cookies
-}
-
-func (e *entry) Headers() Headers {
-	return e.headers
+func (e *entry) Request() *http.Request {
+	return e.request
 }

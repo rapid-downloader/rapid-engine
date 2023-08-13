@@ -170,29 +170,13 @@ func (c *chunk) onProgress(onprogress OnProgress) {
 }
 
 func (c *chunk) getDownloadFile(ctx context.Context) (io.ReadCloser, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", c.entry.URL(), nil)
-	if err != nil {
-		c.logger.Print("Error creating chunk request:", err.Error())
-		return nil, err
-	}
+	req := c.entry.(entry.RequestClient).Request().Clone(ctx)
 
 	if c.start != -1 && c.end != -1 {
 		bytesRange := fmt.Sprintf("bytes=%d-%d", c.start, c.end)
 		req.Header.Add("Range", bytesRange)
 
 		c.logger.Print("Downloading chunk", c.index, "from", c.start, "to", c.end, fmt.Sprintf("(~%d MB)", (c.end-c.start)/(1024*1024)))
-	}
-
-	if cookieJar, ok := c.entry.(entry.CookieJar); ok && len(cookieJar.Cookies()) > 0 {
-		for _, cookie := range cookieJar.Cookies() {
-			req.AddCookie(cookie)
-		}
-	}
-
-	if ext, ok := c.entry.(entry.Extension); ok {
-		for key, value := range ext.Headers() {
-			req.Header.Add(key, value)
-		}
 	}
 
 	res, err := http.DefaultClient.Do(req)

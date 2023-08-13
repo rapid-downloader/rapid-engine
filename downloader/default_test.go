@@ -103,8 +103,10 @@ func TestStopDownloadLocalOneChunkSuccess(t *testing.T) {
 
 	for i := 0; i < entry.ChunkLen(); i++ {
 		chunkfile := filepath.Join(setting.DownloadLocation(), fmt.Sprintf("%s-%d", entry.ID(), i))
-		if err := os.Remove(chunkfile); err != nil {
-			t.Error("Error removing chunk file")
+		if _, err := os.Stat(chunkfile); err == nil {
+			if err := os.Remove(chunkfile); err != nil {
+				t.Error("Error removing chunk file:", err.Error())
+			}
 		}
 	}
 }
@@ -129,7 +131,7 @@ func TestStopDownloadLocalMultipleChunkSuccess(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(6 * time.Second)
 
 	if err := downloader.Stop(entry); err != nil {
 		t.Error("Error stopping download:", err.Error())
@@ -139,8 +141,10 @@ func TestStopDownloadLocalMultipleChunkSuccess(t *testing.T) {
 
 	for i := 0; i < entry.ChunkLen(); i++ {
 		chunkfile := filepath.Join(setting.DownloadLocation(), fmt.Sprintf("%s-%d", entry.ID(), i))
-		if err := os.Remove(chunkfile); err != nil {
-			t.Error("Error removing chunk file")
+		if _, err := os.Stat(chunkfile); err == nil {
+			if err := os.Remove(chunkfile); err != nil {
+				t.Error("Error removing chunk file:", err.Error())
+			}
 		}
 	}
 }
@@ -165,7 +169,7 @@ func TestStopDownloadLocalResumeSuccess(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(6 * time.Second)
 
 	if err := downloader.Stop(entry); err != nil {
 		t.Error("Error stopping download:", err.Error())
