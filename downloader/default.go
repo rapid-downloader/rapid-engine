@@ -188,27 +188,30 @@ func (dl *localDownloader) createFile(entry entry.Entry) error {
 	}
 
 	for i := 0; i < entry.ChunkLen(); i++ {
-		tmpFilename := filepath.Join(dl.DownloadLocation(), fmt.Sprintf("%s-%d", entry.ID(), i))
-		tmpFile, err := os.Open(tmpFilename)
-		if err != nil {
-			dl.Print("Error opening downloaded chunk file:", err.Error())
+		if err := dl.appendChunk(file, entry, i); err != nil {
 			return err
 		}
-
-		if _, err := io.Copy(file, tmpFile); err != nil {
-			dl.Print("Error copying chunk file into actual file:", err.Error())
-			return err
-		}
-
-		if err := os.Remove(tmpFilename); err != nil {
-			dl.Print("Error removing temp file:", err.Error())
-			return err
-		}
-
-		tmpFile.Close()
 	}
 
 	return nil
+}
+
+func (dl *localDownloader) appendChunk(dst io.Writer, entry entry.Entry, index int) error {
+	tmpFilename := filepath.Join(dl.DownloadLocation(), fmt.Sprintf("%s-%d", entry.ID(), index))
+	tmpFile, err := os.Open(tmpFilename)
+	if err != nil {
+		dl.Print("Error opening downloaded chunk file:", err.Error())
+		return err
+	}
+
+	defer tmpFile.Close()
+
+	if _, err := io.Copy(dst, tmpFile); err != nil {
+		dl.Print("Error copying chunk file into actual file:", err.Error())
+		return err
+	}
+
+	return os.Remove(tmpFilename)
 }
 
 func init() {

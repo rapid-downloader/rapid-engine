@@ -108,6 +108,7 @@ func Fetch(url string, options ...Options) (Entry, error) {
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		logger.Print("Error fetching url:", err.Error())
+		return nil, err
 	}
 
 	resumable := resumable(res)

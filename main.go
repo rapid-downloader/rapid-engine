@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"runtime"
 	"time"
 
 	"github.com/rapid-downloader/rapid/downloader"
@@ -66,6 +67,8 @@ type (
 
 func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		defer runtime.GC()
+
 		var buffer bytes.Buffer
 		if _, err := buffer.ReadFrom(r.Body); err != nil {
 			log.Println("Error parsing body:", err)
@@ -105,6 +108,7 @@ func main() {
 
 		if err != nil {
 			log.Println("Error fetching url:", err)
+			return
 		}
 
 		dl := downloader.New(downloader.Default)
