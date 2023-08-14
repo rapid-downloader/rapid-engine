@@ -95,9 +95,7 @@ func TestStopDownloadLocalOneChunkSuccess(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	if err := downloader.Stop(entry); err != nil {
-		t.Error("Error stopping download:", err.Error())
-	}
+	downloader.Stop(entry)
 
 	setting := setting.Default()
 
@@ -133,9 +131,7 @@ func TestStopDownloadLocalMultipleChunkSuccess(t *testing.T) {
 
 	time.Sleep(6 * time.Second)
 
-	if err := downloader.Stop(entry); err != nil {
-		t.Error("Error stopping download:", err.Error())
-	}
+	downloader.Stop(entry)
 
 	setting := setting.Default()
 
@@ -171,9 +167,7 @@ func TestStopDownloadLocalResumeSuccess(t *testing.T) {
 
 	time.Sleep(6 * time.Second)
 
-	if err := downloader.Stop(entry); err != nil {
-		t.Error("Error stopping download:", err.Error())
-	}
+	downloader.Stop(entry)
 
 	if err := downloader.Resume(entry); err != nil {
 		t.Error("Error resuming download:", err.Error())

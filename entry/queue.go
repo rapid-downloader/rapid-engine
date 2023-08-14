@@ -48,6 +48,7 @@ func (q *queue) Pop() Entry {
 
 	el := q.list.Front()
 	if entry, ok := el.Value.(Entry); ok {
+		q.list.Remove(el)
 		return entry
 	}
 

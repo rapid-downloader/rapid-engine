@@ -32,6 +32,16 @@ func newLocalDownloader(opt *option) Downloader {
 	}
 }
 
+func (dl *localDownloader) done() {
+	if dl.queue == nil {
+		return
+	}
+
+	if qs, ok := dl.queue.(entry.QueueSignal); ok {
+		qs.Done()
+	}
+}
+
 func (dl *localDownloader) Download(entry entry.Entry) error {
 	start := time.Now()
 
@@ -65,9 +75,12 @@ func (dl *localDownloader) Download(entry entry.Entry) error {
 
 	wg.Wait()
 
+	// this means the download is paused or being stopped
 	if entry.Context().Err() != nil {
 		return nil
 	}
+
+	defer dl.done()
 
 	if err := dl.createFile(entry); err != nil {
 		dl.Print("Error combining chunks:", err.Error())
@@ -76,8 +89,6 @@ func (dl *localDownloader) Download(entry entry.Entry) error {
 
 	elapsed := time.Since(start)
 	dl.Print(entry.Name(), "downloaded  in", elapsed.Seconds(), "s")
-
-	// TODO: do something with queue
 
 	return nil
 }
@@ -134,6 +145,13 @@ func (dl *localDownloader) Resume(entry entry.Entry) error {
 
 	wg.Wait()
 
+	// this means the download is paused or being stopped
+	if entry.Context().Err() != nil {
+		return nil
+	}
+
+	defer dl.done()
+
 	if err := dl.createFile(entry); err != nil {
 		dl.Print("Error combining chunks:", err.Error())
 		return err
@@ -169,11 +187,20 @@ func (dl *localDownloader) Restart(entry entry.Entry) error {
 	return dl.Download(entry)
 }
 
-func (dl *localDownloader) Stop(entry entry.Entry) error {
-	dl.Print("Stopping download", entry.Name(), "...")
+func (dl *localDownloader) Pause(entry entry.Entry) {
+	dl.Print("Pausing download", entry.Name(), "...")
 
 	entry.Cancel()
-	return nil
+}
+
+func (dl *localDownloader) Stop(entry entry.Entry) {
+	defer dl.done()
+
+	dl.Print("Stopping download", entry.Name(), "...")
+
+	if entry.Context().Err() == nil {
+		entry.Cancel()
+	}
 }
 
 // Watch will update the id, index, downloaded bytes, and progress in percent of chunks. Watch must be called before Download

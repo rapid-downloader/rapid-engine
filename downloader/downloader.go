@@ -12,7 +12,8 @@ type (
 		Download(entry entry.Entry) error
 		Resume(entry entry.Entry) error
 		Restart(entry entry.Entry) error
-		Stop(entry entry.Entry) error
+		Stop(entry entry.Entry)
+		Pause(entry.Entry)
 	}
 
 	Watcher interface {
