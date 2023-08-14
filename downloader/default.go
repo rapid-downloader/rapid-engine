@@ -19,6 +19,7 @@ type localDownloader struct {
 	setting.Setting
 	logger.Logger
 	onprogress OnProgress
+	queue      entry.Queue
 }
 
 var Default = "default"
@@ -27,6 +28,7 @@ func newLocalDownloader(opt *option) Downloader {
 	return &localDownloader{
 		Setting: opt.setting,
 		Logger:  logger.New(opt.setting),
+		queue:   opt.queue,
 	}
 }
 
@@ -74,6 +76,8 @@ func (dl *localDownloader) Download(entry entry.Entry) error {
 
 	elapsed := time.Since(start)
 	dl.Print(entry.Name(), "downloaded  in", elapsed.Seconds(), "s")
+
+	// TODO: do something with queue
 
 	return nil
 }
@@ -137,6 +141,8 @@ func (dl *localDownloader) Resume(entry entry.Entry) error {
 
 	elapsed := time.Since(start)
 	dl.Print(entry.Name(), "resumed in", elapsed.Seconds(), "s")
+
+	// TODO: do something with queue
 
 	return nil
 }

@@ -145,12 +145,8 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		request:   req,
 	}
 
-	if opt.queue == nil {
-		return entry, nil
-	}
-
-	if err := opt.queue.Push(entry); err != nil {
-		return nil, err
+	if opt.queue != nil {
+		opt.queue.Push(entry)
 	}
 
 	return entry, nil

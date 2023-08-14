@@ -25,6 +25,7 @@ type (
 
 	option struct {
 		setting setting.Setting
+		queue   entry.Queue
 	}
 
 	Options func(o *option)
@@ -33,6 +34,12 @@ type (
 func UseSetting(setting setting.Setting) Options {
 	return func(o *option) {
 		o.setting = setting
+	}
+}
+
+func UseQueue(queue entry.Queue) Options {
+	return func(o *option) {
+		o.queue = queue
 	}
 }
 
