@@ -75,7 +75,7 @@ func (dl *localDownloader) Download(entry entry.Entry) error {
 
 	wg.Wait()
 
-	// this means the download is paused or being stopped
+	// this means the download is being paused or stopped
 	if entry.Context().Err() != nil {
 		return nil
 	}
@@ -145,7 +145,7 @@ func (dl *localDownloader) Resume(entry entry.Entry) error {
 
 	wg.Wait()
 
-	// this means the download is paused or being stopped
+	// this means the download is being paused or stopped
 	if entry.Context().Err() != nil {
 		return nil
 	}
@@ -159,8 +159,6 @@ func (dl *localDownloader) Resume(entry entry.Entry) error {
 
 	elapsed := time.Since(start)
 	dl.Print(entry.Name(), "resumed in", elapsed.Seconds(), "s")
-
-	// TODO: do something with queue
 
 	return nil
 }
