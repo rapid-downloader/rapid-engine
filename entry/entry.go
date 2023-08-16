@@ -35,21 +35,21 @@ type (
 
 	entry struct {
 		logger.Logger
-		ctx       context.Context
-		cancel    context.CancelFunc
-		request   *http.Request
-		id        string
-		name      string
-		location  string
-		size      int64
-		filetype  string
-		url       string
-		resumable bool
-		chunkLen  int
+		ctx        context.Context
+		cancel     context.CancelFunc
+		request    *http.Request
+		Id         string `json:"id"`
+		Name_      string `json:"name"`
+		Location_  string `json:"location"`
+		Size_      int64  `json:"size"`
+		Filetype_  string `json:"filetype"`
+		URL_       string `json:"url"`
+		Resumable_ bool   `json:"resumable"`
+		ChunkLen_  int    `json:"chunkLen"`
 	}
 
 	option struct {
-		setting setting.Setting
+		setting *setting.Setting
 		cookies []*http.Cookie
 		headers Headers
 		queue   Queue
@@ -58,7 +58,7 @@ type (
 	Options func(o *option)
 )
 
-func UseSetting(setting setting.Setting) Options {
+func UseSetting(setting *setting.Setting) Options {
 	return func(o *option) {
 		o.setting = setting
 	}
@@ -116,7 +116,7 @@ func Fetch(url string, options ...Options) (Entry, error) {
 
 	resumable := resumable(res)
 	filename := handleDuplicate(filename(res))
-	location := filepath.Join(opt.setting.DownloadLocation(), filename)
+	location := filepath.Join(opt.setting.DownloadLocation, filename)
 	filetype := filetype(filename)
 	ctx, cancel := context.WithCancel(context.Background())
 	chunklen := calculatePartition(res.ContentLength, opt.setting)
@@ -131,18 +131,18 @@ func Fetch(url string, options ...Options) (Entry, error) {
 	}
 
 	entry := &entry{
-		id:        randID(10),
-		name:      filename,
-		location:  location,
-		filetype:  filetype,
-		url:       url,
-		size:      size,
-		Logger:    logger,
-		chunkLen:  chunklen,
-		ctx:       ctx,
-		cancel:    cancel,
-		resumable: resumable,
-		request:   req,
+		Id:         randID(10),
+		Name_:      filename,
+		Location_:  location,
+		Filetype_:  filetype,
+		URL_:       url,
+		Size_:      size,
+		Logger:     logger,
+		ChunkLen_:  chunklen,
+		ctx:        ctx,
+		cancel:     cancel,
+		Resumable_: resumable,
+		request:    req,
 	}
 
 	if opt.queue == nil {
@@ -157,35 +157,35 @@ func Fetch(url string, options ...Options) (Entry, error) {
 }
 
 func (e *entry) ID() string {
-	return e.id
+	return e.Id
 }
 
 func (e *entry) Name() string {
-	return e.name
+	return e.Name_
 }
 
 func (e *entry) Location() string {
-	return e.location
+	return e.Location_
 }
 
 func (e *entry) Size() int64 {
-	return e.size
+	return e.Size_
 }
 
 func (e *entry) Type() string {
-	return e.filetype
+	return e.Filetype_
 }
 
 func (e *entry) URL() string {
-	return e.url
+	return e.URL_
 }
 
 func (e *entry) ChunkLen() int {
-	return e.chunkLen
+	return e.ChunkLen_
 }
 
 func (e *entry) Resumable() bool {
-	return e.resumable
+	return e.Resumable_
 }
 
 func (e *entry) Context() context.Context {
@@ -219,14 +219,13 @@ func (e *entry) Refresh() error {
 func (e *entry) String() string {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("ID: %v\n", e.id))
-	buffer.WriteString(fmt.Sprintf("Name: %v\n", e.name))
-	buffer.WriteString(fmt.Sprintf("Location: %v\n", e.location))
-	buffer.WriteString(fmt.Sprintf("Size: %v\n", e.size))
-	buffer.WriteString(fmt.Sprintf("Filetype: %v\n", e.filetype))
-	buffer.WriteString(fmt.Sprintf("URL: %v\n", e.url))
-	buffer.WriteString(fmt.Sprintf("Resumable: %v\n", e.resumable))
-	buffer.WriteString(fmt.Sprintf("ChunkLen: %v\n", e.chunkLen))
+	buffer.WriteString(fmt.Sprintf("ID: %v\n", e.Id))
+	buffer.WriteString(fmt.Sprintf("Name: %v\n", e.Name_))
+	buffer.WriteString(fmt.Sprintf("Location: %v\n", e.Location_))
+	buffer.WriteString(fmt.Sprintf("Size: %v\n", e.Size_))
+	buffer.WriteString(fmt.Sprintf("Filetype: %v\n", e.Filetype_))
+	buffer.WriteString(fmt.Sprintf("Resumable: %v\n", e.Resumable_))
+	buffer.WriteString(fmt.Sprintf("ChunkLen: %v\n", e.ChunkLen_))
 	buffer.WriteString(fmt.Sprintf("Expired: %v\n", e.Expired()))
 
 	return buffer.String()

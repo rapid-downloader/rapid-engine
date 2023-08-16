@@ -113,13 +113,13 @@ func filename(r *http.Response) string {
 }
 
 // calculatePartition calculates how many chunks will be for certain size
-func calculatePartition(size int64, setting setting.Setting) int {
-	if size < setting.MinChunkSize() {
+func calculatePartition(size int64, setting *setting.Setting) int {
+	if size < setting.MinChunkSize {
 		return 1
 	}
 
 	total := math.Log10(float64(size / (1024 * 1024)))
-	partsize := setting.MinChunkSize()
+	partsize := setting.MinChunkSize
 
 	// dampening the total partition based on digit figures, e.g 100 -> 3 digits
 	for i := 0; i < int(total); i++ {
