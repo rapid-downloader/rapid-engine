@@ -24,13 +24,13 @@ type (
 	OnProgress func(data ...interface{})
 
 	option struct {
-		setting setting.Setting
+		setting *setting.Setting
 	}
 
 	Options func(o *option)
 )
 
-func UseSetting(setting setting.Setting) Options {
+func UseSetting(setting *setting.Setting) Options {
 	return func(o *option) {
 		o.setting = setting
 	}

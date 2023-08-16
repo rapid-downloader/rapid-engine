@@ -16,7 +16,7 @@ import (
 
 // downloader that save the result into local file
 type localDownloader struct {
-	setting.Setting
+	*setting.Setting
 	logger.Logger
 	onprogress OnProgress
 }
@@ -154,7 +154,7 @@ func (dl *localDownloader) Restart(entry entry.Entry) error {
 
 	// remove the downloaded chunk if any
 	for i := 0; i < entry.ChunkLen(); i++ {
-		chunkFile := filepath.Join(dl.DownloadLocation(), fmt.Sprintf("%s-%d", entry.ID(), i))
+		chunkFile := filepath.Join(dl.DownloadLocation, fmt.Sprintf("%s-%d", entry.ID(), i))
 		if err := os.Remove(chunkFile); err != nil {
 			return err
 		}
@@ -187,7 +187,7 @@ func (dl *localDownloader) createFile(entry entry.Entry) error {
 
 	// if chunk len is 1, then just rename the chunk into entry filename
 	if entry.ChunkLen() == 1 {
-		chunkname := filepath.Join(dl.DownloadLocation(), fmt.Sprintf("%s-%d", entry.ID(), 0))
+		chunkname := filepath.Join(dl.DownloadLocation, fmt.Sprintf("%s-%d", entry.ID(), 0))
 		return os.Rename(chunkname, entry.Location())
 	}
 
@@ -201,7 +201,7 @@ func (dl *localDownloader) createFile(entry entry.Entry) error {
 }
 
 func (dl *localDownloader) appendChunk(dst io.Writer, entry entry.Entry, index int) error {
-	tmpFilename := filepath.Join(dl.DownloadLocation(), fmt.Sprintf("%s-%d", entry.ID(), index))
+	tmpFilename := filepath.Join(dl.DownloadLocation, fmt.Sprintf("%s-%d", entry.ID(), index))
 	tmpFile, err := os.Open(tmpFilename)
 	if err != nil {
 		dl.Print("Error opening downloaded chunk file:", err.Error())

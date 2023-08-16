@@ -52,7 +52,7 @@ func (r *progressBar) Close() error {
 
 type chunk struct {
 	entry      entry.Entry
-	setting    setting.Setting
+	setting    *setting.Setting
 	logger     logger.Logger
 	wg         *sync.WaitGroup
 	path       string
@@ -92,12 +92,12 @@ func resumePosition(location string) int64 {
 	return resumePos
 }
 
-func newChunk(entry entry.Entry, index int, setting setting.Setting, wg *sync.WaitGroup) *chunk {
+func newChunk(entry entry.Entry, index int, setting *setting.Setting, wg *sync.WaitGroup) *chunk {
 	chunkSize := entry.Size() / int64(entry.ChunkLen())
 	start, end := calculatePosition(entry, chunkSize, index)
 
 	return &chunk{
-		path:       filepath.Join(setting.DownloadLocation(), fmt.Sprintf("%s-%d", entry.ID(), index)),
+		path:       filepath.Join(setting.DownloadLocation, fmt.Sprintf("%s-%d", entry.ID(), index)),
 		entry:      entry,
 		setting:    setting,
 		wg:         wg,
@@ -149,7 +149,7 @@ func (c *chunk) OnError(ctx context.Context, err error) {
 	}
 
 	var e error
-	for i := 0; i < c.setting.MaxRetry(); i++ {
+	for i := 0; i < c.setting.MaxRetry; i++ {
 		c.wg.Add(1)
 		c.logger.Print("Error downloading file:", err.Error(), ". Retrying...")
 
@@ -199,7 +199,7 @@ func (c *chunk) getDownloadFile(ctx context.Context) (io.ReadCloser, error) {
 }
 
 func (c *chunk) getSaveFile() (io.WriteCloser, error) {
-	tmpFilename := filepath.Join(c.setting.DownloadLocation(), fmt.Sprintf("%s-%d", c.entry.ID(), c.index))
+	tmpFilename := filepath.Join(c.setting.DownloadLocation, fmt.Sprintf("%s-%d", c.entry.ID(), c.index))
 	file, err := os.OpenFile(tmpFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		c.logger.Print("Error creating or appending file:", err.Error())

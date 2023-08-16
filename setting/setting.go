@@ -6,33 +6,16 @@ import (
 )
 
 type (
-	Setting interface {
-		// location where the download will be placed
-		DownloadLocation() string
-
-		// location where the data for this application will be stored
-		DataLocation() string
-
-		// max retry will be executed when there is an Error downloading
-		MaxRetry() int
-
-		// logger provider that will be used to log something, e.g file, std, etc
-		LoggerProvider() string
-
-		// minimum size in MB for a chunk
-		MinChunkSize() int64
-	}
-
-	settings struct {
-		downloadLocation string
-		dataLocation     string
-		maxRetry         int
-		loggerProvider   string
-		minChunkSize     int64
+	Setting struct {
+		DownloadLocation string `json:"downloadLocation"`
+		DataLocation     string `json:"dataLocation"`
+		MaxRetry         int    `json:"maxRetry"`
+		LoggerProvider   string `json:"loggerProvider"`
+		MinChunkSize     int64  `json:"minChunkSize"`
 	}
 )
 
-func Default() Setting {
+func Default() *Setting {
 	home, _ := os.UserHomeDir()
 
 	// location
@@ -41,31 +24,11 @@ func Default() Setting {
 
 	os.MkdirAll(data, os.ModePerm)
 
-	return &settings{
-		downloadLocation: download,
-		dataLocation:     data,
-		maxRetry:         3,
-		loggerProvider:   "stdout",
-		minChunkSize:     1024 * 1024 * 5, // 5 MB
+	return &Setting{
+		DownloadLocation: download,
+		DataLocation:     data,
+		MaxRetry:         3,
+		LoggerProvider:   "stdout",
+		MinChunkSize:     1024 * 1024 * 5, // 5 MB
 	}
-}
-
-func (s *settings) DownloadLocation() string {
-	return s.downloadLocation
-}
-
-func (s *settings) DataLocation() string {
-	return s.dataLocation
-}
-
-func (s *settings) MaxRetry() int {
-	return s.maxRetry
-}
-
-func (s *settings) LoggerProvider() string {
-	return s.loggerProvider
-}
-
-func (s *settings) MinChunkSize() int64 {
-	return s.minChunkSize
 }
