@@ -5,22 +5,19 @@ import (
 	"time"
 
 	"github.com/rapid-downloader/rapid/helper"
+	"github.com/rapid-downloader/rapid/setting"
 )
 
 type (
 	cookie struct {
-		Name       string
-		Value      string
-		Path       string
-		Domain     string
-		Expires    time.Time
-		RawExpires string
-		MaxAge     int
-		Secure     bool
-		HttpOnly   bool
-		SameSite   string
-		Raw        string
-		Unparsed   []string
+		Name     string    `json:"name"`
+		Value    string    `json:"value"`
+		Path     string    `json:"path"`
+		Domain   string    `json:"domain"`
+		Expires  time.Time `json:"expirationDate"`
+		Secure   bool      `json:"secure"`
+		HttpOnly bool      `json:"httpOnly"`
+		SameSite string    `json:"sameSite"`
 	}
 
 	browserRequest struct {
@@ -37,22 +34,21 @@ func (r *browserRequest) toOptions() []Options {
 	cookies := make([]*http.Cookie, len(r.cookies))
 	for i, cookie := range r.cookies {
 		cookies[i] = &http.Cookie{
-			Name:       cookie.Name,
-			Value:      cookie.Value,
-			Path:       cookie.Path,
-			Domain:     cookie.Domain,
-			Expires:    cookie.Expires,
-			RawExpires: cookie.RawExpires,
-			MaxAge:     cookie.MaxAge,
-			Secure:     cookie.Secure,
-			HttpOnly:   cookie.HttpOnly,
-			SameSite:   helper.ToSamesite(cookie.SameSite),
-			Raw:        cookie.Raw,
-			Unparsed:   cookie.Unparsed,
+			Name:     cookie.Name,
+			Value:    cookie.Value,
+			Path:     cookie.Path,
+			Domain:   cookie.Domain,
+			Expires:  cookie.Expires,
+			Secure:   cookie.Secure,
+			HttpOnly: cookie.HttpOnly,
+			SameSite: helper.ToSamesite(cookie.SameSite),
 		}
 	}
 
+	setting := setting.Get()
+
 	options = append(options,
+		UseSetting(setting),
 		AddCookies(cookies),
 		AddHeaders(Headers{
 			"Content-Type": r.ContentType,

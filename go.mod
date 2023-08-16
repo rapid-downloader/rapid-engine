@@ -3,6 +3,7 @@ module github.com/rapid-downloader/rapid
 go 1.19
 
 require (
+	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/gofiber/fiber/v2 v2.48.0 // indirect
