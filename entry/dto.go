@@ -26,6 +26,10 @@ type (
 		UserAgent   string `json:"userAgent"`
 		cookies     []cookie
 	}
+
+	cliRequest struct {
+		Url string `json:"url"`
+	}
 )
 
 func (r *browserRequest) toOptions() []Options {
