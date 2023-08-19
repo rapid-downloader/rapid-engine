@@ -31,28 +31,79 @@ type (
 )
 
 var services = make([]Service, 0)
+var realtimes = make([]Realtime, 0)
 
 func RegisterService(s Service) {
 	services = append(services, s)
 }
 
-func Create(app *fiber.App) {
+func RegisterRealtime(r Realtime) {
+	realtimes = append(realtimes, r)
+}
+
+func createService(app *fiber.App) error {
 	for _, service := range services {
 		if init, ok := service.(ServiceInitter); ok {
 			if err := init.Init(); err != nil {
-				log.Fatal("Error initiating service:", err)
+				return err
 			}
 		}
 
 		for _, route := range service.Router() {
 			app.Add(route.Method, route.Path, route.Handler)
 		}
+	}
 
-		if ch, ok := service.(Realtime); ok {
-			for _, channel := range ch.Channels() {
-				app.Add(channel.Method, channel.Path, websocket.New(channel.Handler))
+	return nil
+}
+
+func closeService(app *fiber.App) error {
+	for _, service := range services {
+		if closer, ok := service.(ServiceCloser); ok {
+			if err := closer.Close(); err != nil {
+				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func createRealtime(app *fiber.App) error {
+	for _, service := range realtimes {
+		if init, ok := service.(ServiceInitter); ok {
+			if err := init.Init(); err != nil {
+				return err
+			}
+		}
+
+		for _, channel := range service.Sockets() {
+			app.Add(channel.Method, channel.Path, websocket.New(channel.Handler))
+		}
+	}
+
+	return nil
+}
+
+func closeRealtime(app *fiber.App) error {
+	for _, service := range realtimes {
+		if closer, ok := service.(ServiceCloser); ok {
+			if err := closer.Close(); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func Create(app *fiber.App) {
+	if err := createService(app); err != nil {
+		log.Fatal("Error creating service:", err)
+	}
+
+	if err := createRealtime(app); err != nil {
+		log.Fatal("Error creating web socket service:", err)
 	}
 }
 
@@ -66,12 +117,12 @@ func Shutdown(app *fiber.App) {
 		<-ch
 		log.Println("Shutting down...")
 
-		for _, service := range services {
-			if closer, ok := service.(ServiceCloser); ok {
-				if err := closer.Close(); err != nil {
-					log.Fatal("Error closing service:", err)
-				}
-			}
+		if err := closeService(app); err != nil {
+			log.Fatal("Error creating service:", err)
+		}
+
+		if err := closeRealtime(app); err != nil {
+			log.Fatal("Error creating web socket service:", err)
 		}
 
 		app.Shutdown()

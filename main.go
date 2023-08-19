@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rapid-downloader/rapid/api"
-	_ "github.com/rapid-downloader/rapid/downloader"
+	_ "github.com/rapid-downloader/rapid/downloader/api"
 	_ "github.com/rapid-downloader/rapid/entry/api"
 )
 

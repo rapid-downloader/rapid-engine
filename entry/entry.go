@@ -34,18 +34,18 @@ type (
 	}
 
 	entry struct {
-		logger.Logger
-		ctx        context.Context
-		cancel     context.CancelFunc
-		request    *http.Request
-		Id         string `json:"id"`
-		Name_      string `json:"name"`
-		Location_  string `json:"location"`
-		Size_      int64  `json:"size"`
-		Filetype_  string `json:"filetype"`
-		URL_       string `json:"url"`
-		Resumable_ bool   `json:"resumable"`
-		ChunkLen_  int    `json:"chunkLen"`
+		logger.Logger `json:"-"`
+		ctx           context.Context    `json:"-"`
+		cancel        context.CancelFunc `json:"-"`
+		request       *http.Request      `json:"-"`
+		Id            string             `json:"id"`
+		Name_         string             `json:"name"`
+		Location_     string             `json:"location"`
+		Size_         int64              `json:"size"`
+		Filetype_     string             `json:"filetype"`
+		URL_          string             `json:"url"`
+		Resumable_    bool               `json:"resumable"`
+		ChunkLen_     int                `json:"chunkLen"`
 	}
 
 	option struct {
