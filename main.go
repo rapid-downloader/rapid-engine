@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/goccy/go-json"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
@@ -29,5 +31,5 @@ func main() {
 	api.Create(app)
 	api.Shutdown(app)
 
-	app.Listen(":3000")
+	log.Fatal(app.Listen(":3300"))
 }

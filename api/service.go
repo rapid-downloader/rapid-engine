@@ -31,14 +31,14 @@ type (
 )
 
 var services = make([]Service, 0)
-var realtimes = make([]Realtime, 0)
+var websockets = make([]WebSocket, 0)
 
 func RegisterService(s Service) {
 	services = append(services, s)
 }
 
-func RegisterRealtime(r Realtime) {
-	realtimes = append(realtimes, r)
+func RegisterWebSocket(r WebSocket) {
+	websockets = append(websockets, r)
 }
 
 func createService(app *fiber.App) error {
@@ -70,7 +70,7 @@ func closeService(app *fiber.App) error {
 }
 
 func createRealtime(app *fiber.App) error {
-	for _, service := range realtimes {
+	for _, service := range websockets {
 		if init, ok := service.(ServiceInitter); ok {
 			if err := init.Init(); err != nil {
 				return err
@@ -86,7 +86,7 @@ func createRealtime(app *fiber.App) error {
 }
 
 func closeRealtime(app *fiber.App) error {
-	for _, service := range realtimes {
+	for _, service := range websockets {
 		if closer, ok := service.(ServiceCloser); ok {
 			if err := closer.Close(); err != nil {
 				return err

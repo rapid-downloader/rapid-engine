@@ -9,13 +9,12 @@ type (
 		Handler func(c *websocket.Conn)
 	}
 
-	Realtime interface {
+	WebSocket interface {
 		Sockets() []Socket
 	}
 
 	Channel interface {
 		Post(name string, data interface{})
-		RegisterSignal(name string, ch chan interface{})
 		Signal(name string) <-chan interface{}
 	}
 
@@ -40,10 +39,6 @@ func NewChannel(name ...string) Channel {
 	}
 
 	return defaultChannel()
-}
-
-func (c *channel) RegisterSignal(name string, ch chan interface{}) {
-	c.mapCh[name] = ch
 }
 
 func defaultChannel() Channel {

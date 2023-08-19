@@ -25,6 +25,13 @@ type progressBar struct {
 	chunkSize  int64
 }
 
+type progressBarData struct {
+	ID       string  `json:"id"`
+	Index    int     `json:"index"`
+	Progress float64 `json:"progress"`
+	Done     bool    `json:"bool"`
+}
+
 func (r *progressBar) Read(payload []byte) (n int, err error) {
 	n, err = r.reader.Read(payload)
 	if err != nil {
@@ -32,15 +39,17 @@ func (r *progressBar) Read(payload []byte) (n int, err error) {
 	}
 
 	r.downloaded += int64(n)
-	r.progress = float64(100 * r.downloaded / r.chunkSize)
+	r.progress = 100 * float64(r.downloaded) / float64(r.chunkSize)
 
 	if r.onprogress != nil {
-		r.onprogress(
-			r.ID(),
-			r.index,
-			r.downloaded,
-			r.progress,
-		)
+		data := progressBarData{
+			ID:       r.ID(),
+			Index:    r.index,
+			Progress: r.progress,
+			Done:     r.downloaded == r.chunkSize,
+		}
+
+		r.onprogress(data)
 	}
 
 	return n, err

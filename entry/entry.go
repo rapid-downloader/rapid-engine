@@ -25,6 +25,7 @@ type (
 		Cancel()
 		Expired() bool
 		Refresh() error
+		DownloadProvider() string
 	}
 
 	Headers map[string]string
@@ -34,25 +35,27 @@ type (
 	}
 
 	entry struct {
-		logger.Logger `json:"-"`
-		ctx           context.Context    `json:"-"`
-		cancel        context.CancelFunc `json:"-"`
-		request       *http.Request      `json:"-"`
-		Id            string             `json:"id"`
-		Name_         string             `json:"name"`
-		Location_     string             `json:"location"`
-		Size_         int64              `json:"size"`
-		Filetype_     string             `json:"filetype"`
-		URL_          string             `json:"url"`
-		Resumable_    bool               `json:"resumable"`
-		ChunkLen_     int                `json:"chunkLen"`
+		logger.Logger     `json:"-"`
+		ctx               context.Context    `json:"-"`
+		cancel            context.CancelFunc `json:"-"`
+		request           *http.Request      `json:"-"`
+		Id                string             `json:"id"`
+		Name_             string             `json:"name"`
+		Location_         string             `json:"location"`
+		Size_             int64              `json:"size"`
+		Filetype_         string             `json:"filetype"`
+		URL_              string             `json:"url"`
+		Resumable_        bool               `json:"resumable"`
+		ChunkLen_         int                `json:"chunkLen"`
+		DownloadProvider_ string             `json:"downloadProvider"`
 	}
 
 	option struct {
-		setting *setting.Setting
-		cookies []*http.Cookie
-		headers Headers
-		queue   Queue
+		setting          *setting.Setting
+		cookies          []*http.Cookie
+		headers          Headers
+		queue            Queue
+		downloadProvider string
 	}
 
 	Options func(o *option)
@@ -82,9 +85,15 @@ func UseQueue(queue Queue) Options {
 	}
 }
 
+func UseDownloadProvider(provider string) Options {
+	return func(o *option) {
+		o.downloadProvider = provider
+	}
+}
+
 func Fetch(url string, options ...Options) (Entry, error) {
 	opt := &option{
-		setting: setting.Default(),
+		setting: setting.Get(),
 	}
 
 	for _, option := range options {
@@ -130,19 +139,25 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		logger.Print("Downloading with unknown size...")
 	}
 
+	downloadProvider := "default"
+	if opt.downloadProvider != "" {
+		downloadProvider = opt.downloadProvider
+	}
+
 	entry := &entry{
-		Id:         randID(10),
-		Name_:      filename,
-		Location_:  location,
-		Filetype_:  filetype,
-		URL_:       url,
-		Size_:      size,
-		Logger:     logger,
-		ChunkLen_:  chunklen,
-		ctx:        ctx,
-		cancel:     cancel,
-		Resumable_: resumable,
-		request:    req,
+		Id:                randID(10),
+		Name_:             filename,
+		Location_:         location,
+		Filetype_:         filetype,
+		URL_:              url,
+		Size_:             size,
+		Logger:            logger,
+		ChunkLen_:         chunklen,
+		ctx:               ctx,
+		cancel:            cancel,
+		Resumable_:        resumable,
+		request:           req,
+		DownloadProvider_: downloadProvider,
 	}
 
 	if opt.queue == nil {
@@ -214,6 +229,10 @@ func (e *entry) Refresh() error {
 	// TODO: do something else, such as refresh the link (future feature if browser extenstion is present)
 
 	return nil
+}
+
+func (e *entry) DownloadProvider() string {
+	return e.DownloadProvider_
 }
 
 func (e *entry) String() string {

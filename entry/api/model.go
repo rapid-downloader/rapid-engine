@@ -21,7 +21,7 @@ type (
 		SameSite string    `json:"sameSite"`
 	}
 
-	browserRequest struct {
+	request struct {
 		Url         string `json:"url"`
 		ContentType string `json:"contentType"`
 		UserAgent   string `json:"userAgent"`
@@ -33,7 +33,7 @@ type (
 	}
 )
 
-func (r *browserRequest) toOptions() []entry.Options {
+func (r *request) toOptions() []entry.Options {
 	options := make([]entry.Options, 0)
 
 	cookies := make([]*http.Cookie, len(r.cookies))

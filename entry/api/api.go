@@ -1,8 +1,6 @@
 package entry
 
 import (
-	"log"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/rapid-downloader/rapid/api"
 	"github.com/rapid-downloader/rapid/downloader"
@@ -10,24 +8,22 @@ import (
 	response "github.com/rapid-downloader/rapid/helper"
 )
 
+const (
+	ClientCLI = "cli"
+	ClientGUI = "gui"
+)
+
 type entryService struct {
-	channel api.Channel
+	ws      api.Channel
 	entries map[string]entry.Entry
 }
-
-type Channel string
-
-const (
-	GUIChannel Channel = "gui"
-	CLIChannel Channel = "cli"
-)
 
 func NewService() api.Service {
 	return &entryService{}
 }
 
 func (s *entryService) Init() error {
-	s.channel = api.NewChannel()
+	s.ws = api.NewChannel()
 	s.entries = make(map[string]entry.Entry)
 
 	return nil
@@ -37,6 +33,7 @@ func (s *entryService) Close() error {
 	return nil
 }
 
+// TODO: use better approach than this
 func (s *entryService) set(id string, entry entry.Entry) {
 	s.entries[id] = entry
 }
@@ -49,37 +46,30 @@ func (s *entryService) delete(id string) {
 	delete(s.entries, id)
 }
 
-func (s *entryService) createRequest(ctx *fiber.Ctx) error {
-	var request browserRequest
+func (s *entryService) createRequestWithOpen(ctx *fiber.Ctx) error {
+	client := ctx.Params("client")
+	provider := ctx.Params("provider", downloader.Default)
 
-	if err := ctx.BodyParser(&request); err != nil {
+	var req request
+
+	if err := ctx.BodyParser(&req); err != nil {
 		return response.Error(ctx, err.Error())
 	}
 
-	entry, err := entry.Fetch(request.Url, request.toOptions()...)
+	options := req.toOptions()
+	options = append(options, entry.UseDownloadProvider(provider))
+
+	entry, err := entry.Fetch(req.Url, options...)
 	if err != nil {
 		return response.Error(ctx, err.Error())
 	}
 
-	s.set(entry.ID(), entry)
+	// s.set(entry.ID(), entry)
 
 	// TODO: call the app to spawn if not openned yet
 	// TODO; perform logic to get user auth if user, for example, choose gdrive provider (for future)
-	provider := ctx.Params("provider", downloader.Default)
-	dl := downloader.New(provider)
-	if watcher, ok := dl.(downloader.Watcher); ok {
-		watcher.Watch(func(data ...interface{}) {
-			s.channel.Post(string(GUIChannel), data)
-		})
-	}
 
-	go func() {
-		defer s.delete(entry.ID())
-
-		if err := dl.Download(entry); err != nil {
-			log.Printf("Error downloading %s:%s", entry.Name(), err.Error())
-		}
-	}()
+	s.ws.Post(client, entry)
 
 	return response.Created(ctx)
 }
@@ -98,18 +88,20 @@ func (s *entryService) cliRequest(ctx *fiber.Ctx) error {
 		return response.Error(ctx, err.Error())
 	}
 
+	// s.ws.Post(ClientCLI, entry)
+
 	return response.Success(ctx, entry)
 }
 
 func (s *entryService) Router() []api.Route {
 	return []api.Route{
 		{
-			Path:    "/browser/:provider",
+			Path:    "/download/:client/:provider",
 			Method:  "POST",
-			Handler: s.createRequest,
+			Handler: s.createRequestWithOpen,
 		},
 		{
-			Path:    "/cli",
+			Path:    "/download/cli/",
 			Method:  "POST",
 			Handler: s.cliRequest,
 		},
