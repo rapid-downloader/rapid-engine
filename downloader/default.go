@@ -23,6 +23,7 @@ type localDownloader struct {
 
 var Default = "default"
 
+// TODO: possible change: rethink where the worker should be running (i.e on service init)
 func newLocalDownloader(opt *option) Downloader {
 	return &localDownloader{
 		Setting: opt.setting,

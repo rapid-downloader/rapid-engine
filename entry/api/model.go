@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rapid-downloader/rapid/entry"
 	"github.com/rapid-downloader/rapid/helper"
 	"github.com/rapid-downloader/rapid/setting"
 )
@@ -32,8 +33,8 @@ type (
 	}
 )
 
-func (r *browserRequest) toOptions() []Options {
-	options := make([]Options, 0)
+func (r *browserRequest) toOptions() []entry.Options {
+	options := make([]entry.Options, 0)
 
 	cookies := make([]*http.Cookie, len(r.cookies))
 	for i, cookie := range r.cookies {
@@ -52,9 +53,9 @@ func (r *browserRequest) toOptions() []Options {
 	setting := setting.Get()
 
 	options = append(options,
-		UseSetting(setting),
-		AddCookies(cookies),
-		AddHeaders(Headers{
+		entry.UseSetting(setting),
+		entry.AddCookies(cookies),
+		entry.AddHeaders(entry.Headers{
 			"Content-Type": r.ContentType,
 			"User-Agent":   r.UserAgent,
 		}),

@@ -3,6 +3,7 @@ package entry
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rapid-downloader/rapid/api"
+	"github.com/rapid-downloader/rapid/entry"
 	response "github.com/rapid-downloader/rapid/helper"
 )
 
@@ -20,7 +21,7 @@ func (s *entryService) browserRequest(ctx *fiber.Ctx) error {
 		return response.Error(ctx, err.Error())
 	}
 
-	_, err := Fetch(request.Url, request.toOptions()...)
+	_, err := entry.Fetch(request.Url, request.toOptions()...)
 	if err != nil {
 		return response.Error(ctx, err.Error())
 	}
@@ -37,7 +38,7 @@ func (s *entryService) cliRequest(ctx *fiber.Ctx) error {
 		return response.Error(ctx, err.Error())
 	}
 
-	entry, err := Fetch(request.Url)
+	entry, err := entry.Fetch(request.Url)
 	if err != nil {
 		return response.Error(ctx, err.Error())
 	}
