@@ -22,7 +22,7 @@ type progressBar struct {
 	reader     io.ReadCloser
 	index      int
 	downloaded int64
-	progress   int64
+	progress   int
 	chunkSize  int64
 }
 
@@ -33,7 +33,7 @@ func (r *progressBar) Read(payload []byte) (n int, err error) {
 	}
 
 	r.downloaded += int64(n)
-	r.progress = 100 * r.downloaded / r.chunkSize
+	r.progress = int(100 * r.downloaded / r.chunkSize)
 
 	if r.onprogress != nil {
 		data := api.ProgressBar{
