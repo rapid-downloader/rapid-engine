@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/rapid-downloader/rapid/api"
 	"github.com/rapid-downloader/rapid/downloader"
+	dlApi "github.com/rapid-downloader/rapid/downloader/api"
 	"github.com/rapid-downloader/rapid/entry"
 	response "github.com/rapid-downloader/rapid/helper"
 )
@@ -16,7 +17,6 @@ const (
 )
 
 type entryService struct {
-	ws      api.Channel
 	entries map[string]entry.Entry
 }
 
@@ -108,8 +108,8 @@ func (s *entryService) download(entry entry.Entry) error {
 		return err
 	}
 
-	channel.Post(map[string]bool{
-		"done": true,
+	channel.Post(dlApi.ProgressBar{
+		Done: true,
 	})
 
 	return nil

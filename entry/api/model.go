@@ -22,10 +22,10 @@ type (
 	}
 
 	request struct {
-		Url         string `json:"url"`
-		ContentType string `json:"contentType"`
-		UserAgent   string `json:"userAgent"`
-		cookies     []cookie
+		Url         string   `json:"url"`
+		ContentType string   `json:"contentType"`
+		UserAgent   string   `json:"userAgent"`
+		cookies     []cookie `json:"cookies"`
 	}
 
 	cliRequest struct {

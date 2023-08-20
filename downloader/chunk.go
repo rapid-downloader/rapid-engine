@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/rapid-downloader/rapid/downloader/api"
 	"github.com/rapid-downloader/rapid/entry"
 	"github.com/rapid-downloader/rapid/logger"
 	"github.com/rapid-downloader/rapid/setting"
@@ -22,15 +22,8 @@ type progressBar struct {
 	reader     io.ReadCloser
 	index      int
 	downloaded int64
-	progress   float64
+	progress   int64
 	chunkSize  int64
-}
-
-type progressBarData struct {
-	ID       string  `json:"id"`
-	Index    int     `json:"index"`
-	Progress float64 `json:"progress"`
-	Done     bool    `json:"bool"`
 }
 
 func (r *progressBar) Read(payload []byte) (n int, err error) {
@@ -40,14 +33,15 @@ func (r *progressBar) Read(payload []byte) (n int, err error) {
 	}
 
 	r.downloaded += int64(n)
-	r.progress = 100 * float64(r.downloaded) / float64(r.chunkSize)
+	r.progress = 100 * r.downloaded / r.chunkSize
 
 	if r.onprogress != nil {
-		data := progressBarData{
-			ID:       r.ID(),
-			Index:    r.index,
-			Progress: r.progress,
-			Done:     math.Round(r.progress) == 100,
+		data := api.ProgressBar{
+			ID:         r.ID(),
+			Index:      r.index,
+			Downloaded: r.downloaded,
+			Progress:   r.progress,
+			Size:       r.chunkSize,
 		}
 
 		r.onprogress(data)
