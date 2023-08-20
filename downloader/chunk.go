@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -46,7 +47,7 @@ func (r *progressBar) Read(payload []byte) (n int, err error) {
 			ID:       r.ID(),
 			Index:    r.index,
 			Progress: r.progress,
-			Done:     r.downloaded == r.chunkSize,
+			Done:     math.Round(r.progress) == 100,
 		}
 
 		r.onprogress(data)

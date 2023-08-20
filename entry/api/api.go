@@ -1,6 +1,8 @@
 package entry
 
 import (
+	"log"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/rapid-downloader/rapid/api"
 	"github.com/rapid-downloader/rapid/downloader"
@@ -23,7 +25,6 @@ func NewService() api.Service {
 }
 
 func (s *entryService) Init() error {
-	s.ws = api.NewChannel()
 	s.entries = make(map[string]entry.Entry)
 
 	return nil
@@ -47,7 +48,7 @@ func (s *entryService) delete(id string) {
 }
 
 func (s *entryService) createRequestWithOpen(ctx *fiber.Ctx) error {
-	client := ctx.Params("client")
+	// client := ctx.Params("client")
 	provider := ctx.Params("provider", downloader.Default)
 
 	var req request
@@ -64,12 +65,11 @@ func (s *entryService) createRequestWithOpen(ctx *fiber.Ctx) error {
 		return response.Error(ctx, err.Error())
 	}
 
-	// s.set(entry.ID(), entry)
-
+	// TODO: find a way to resume and cancel for certain entry based on their pointer
 	// TODO: call the app to spawn if not openned yet
 	// TODO; perform logic to get user auth if user, for example, choose gdrive provider (for future)
 
-	s.ws.Post(client, entry)
+	go s.download(entry)
 
 	return response.Created(ctx)
 }
@@ -88,9 +88,31 @@ func (s *entryService) cliRequest(ctx *fiber.Ctx) error {
 		return response.Error(ctx, err.Error())
 	}
 
-	// s.ws.Post(ClientCLI, entry)
+	go s.download(entry)
 
 	return response.Success(ctx, entry)
+}
+
+func (s *entryService) download(entry entry.Entry) error {
+	dl := downloader.New(entry.DownloadProvider())
+	channel := api.CreateChannel(ClientCLI)
+
+	if watcher, ok := dl.(downloader.Watcher); ok {
+		watcher.Watch(func(data ...interface{}) {
+			channel.Post(data[0])
+		})
+	}
+
+	if err := dl.Download(entry); err != nil {
+		log.Printf("Error downloading %s: %v", entry.Name(), err)
+		return err
+	}
+
+	channel.Post(map[string]bool{
+		"done": true,
+	})
+
+	return nil
 }
 
 func (s *entryService) Router() []api.Route {

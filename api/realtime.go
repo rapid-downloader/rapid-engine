@@ -14,43 +14,34 @@ type (
 	}
 
 	Channel interface {
-		Post(name string, data interface{})
-		Signal(name string) <-chan interface{}
+		Post(data interface{})
+		Signal() <-chan interface{}
 	}
 
 	channel struct {
-		mapCh map[string]chan interface{}
+		ch chan interface{}
 	}
 )
 
-var def = "default"
-var chans = map[string]Channel{
-	def: defaultChannel(),
-}
-
-func NewChannel(name ...string) Channel {
-	n := def
-	if len(name) > 0 {
-		n = name[0]
-	}
-
-	if ch, ok := chans[n]; ok {
-		return ch
-	}
-
-	return defaultChannel()
-}
-
-func defaultChannel() Channel {
+func NewChannel() Channel {
 	return &channel{
-		make(map[string]chan interface{}),
+		make(chan interface{}, 100),
 	}
 }
 
-func (c *channel) Post(path string, data interface{}) {
-	c.mapCh[path] <- data
+func (c *channel) Post(data interface{}) {
+	c.ch <- data
 }
 
-func (c *channel) Signal(name string) <-chan interface{} {
-	return c.mapCh[name]
+func (c *channel) Signal() <-chan interface{} {
+	return c.ch
+}
+
+var channels = map[string]Channel{
+	"gui": NewChannel(),
+	"cli": NewChannel(),
+}
+
+func CreateChannel(client string) Channel {
+	return channels[client]
 }
