@@ -25,7 +25,7 @@ type (
 		Url         string   `json:"url"`
 		ContentType string   `json:"contentType"`
 		UserAgent   string   `json:"userAgent"`
-		cookies     []cookie `json:"cookies"`
+		Cookies     []cookie `json:"cookies"`
 	}
 
 	cliRequest struct {
@@ -36,8 +36,8 @@ type (
 func (r *request) toOptions() []entry.Options {
 	options := make([]entry.Options, 0)
 
-	cookies := make([]*http.Cookie, len(r.cookies))
-	for i, cookie := range r.cookies {
+	cookies := make([]*http.Cookie, len(r.Cookies))
+	for i, cookie := range r.Cookies {
 		cookies[i] = &http.Cookie{
 			Name:     cookie.Name,
 			Value:    cookie.Value,
