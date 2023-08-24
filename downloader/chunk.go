@@ -10,13 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rapid-downloader/rapid/downloader/api"
 	"github.com/rapid-downloader/rapid/entry"
 	"github.com/rapid-downloader/rapid/logger"
 	"github.com/rapid-downloader/rapid/setting"
 )
 
-type progressBar struct {
+type progress struct {
 	entry.Entry
 	onprogress OnProgress
 	reader     io.ReadCloser
@@ -26,7 +25,16 @@ type progressBar struct {
 	chunkSize  int64
 }
 
-func (r *progressBar) Read(payload []byte) (n int, err error) {
+type Progressbar struct {
+	ID         string `json:"id"`
+	Index      int    `json:"index"`
+	Downloaded int64  `json:"downloaded"`
+	Size       int64  `json:"size"`
+	Progress   int    `json:"progress"`
+	Done       bool   `json:"done"`
+}
+
+func (r *progress) Read(payload []byte) (n int, err error) {
 	n, err = r.reader.Read(payload)
 	if err != nil {
 		return n, err
@@ -36,7 +44,7 @@ func (r *progressBar) Read(payload []byte) (n int, err error) {
 	r.progress = int(100 * r.downloaded / r.chunkSize)
 
 	if r.onprogress != nil {
-		data := api.ProgressBar{
+		data := Progressbar{
 			ID:         r.ID(),
 			Index:      r.index,
 			Downloaded: r.downloaded,
@@ -50,7 +58,7 @@ func (r *progressBar) Read(payload []byte) (n int, err error) {
 	return n, err
 }
 
-func (r *progressBar) Close() error {
+func (r *progress) Close() error {
 	return r.reader.Close()
 }
 
@@ -189,7 +197,7 @@ func (c *chunk) getDownloadFile(ctx context.Context) (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	progressBar := &progressBar{
+	progressBar := &progress{
 		onprogress: c.onprogress,
 		reader:     res.Body,
 		Entry:      c.entry,

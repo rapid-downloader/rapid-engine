@@ -28,8 +28,10 @@ func main() {
 		return fiber.ErrUpgradeRequired
 	})
 
-	api.Create(app)
-	api.Shutdown(app)
+	api := api.Create(app)
+
+	api.Run()
+	api.Shutdown()
 
 	log.Fatal(app.Listen(":3333"))
 }

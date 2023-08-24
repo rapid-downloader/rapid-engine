@@ -23,13 +23,15 @@ type (
 
 	request struct {
 		Url         string   `json:"url"`
+		Client      string   `json:"client"`
+		Provider    string   `json:"provider"`
 		ContentType string   `json:"contentType"`
 		UserAgent   string   `json:"userAgent"`
 		Cookies     []cookie `json:"cookies"`
 	}
 
-	cliRequest struct {
-		Url string `json:"url"`
+	queueRequest struct {
+		Urls []string `json:"urls"`
 	}
 )
 

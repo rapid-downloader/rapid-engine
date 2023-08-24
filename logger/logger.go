@@ -18,6 +18,8 @@ type (
 var loggermap = make(map[string]LoggerFactory)
 var instance sync.Map
 
+// TODO: rethink how we should properly close the logger if we are going to provide file base log
+
 func New(setting *setting.Setting) Logger {
 	val, ok := instance.Load(setting.LoggerProvider)
 	if ok {

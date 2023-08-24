@@ -8,14 +8,15 @@ import (
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rapid-downloader/rapid/entry"
 )
 
 type (
-	ServiceInitter interface {
+	Initter interface {
 		Init() error
 	}
 
-	ServiceCloser interface {
+	Closer interface {
 		Close() error
 	}
 
@@ -28,87 +29,83 @@ type (
 		Path    string
 		Handler func(ctx *fiber.Ctx) error
 	}
+
+	Socket struct {
+		Path    string
+		Method  string
+		Handler func(c *websocket.Conn)
+	}
+
+	WebSocket interface {
+		Sockets() []Socket
+	}
+
+	serviceRunner struct {
+		lists    *entry.Listing
+		services []Service
+		app      *fiber.App
+	}
+
+	ServiceFactory func(entries *entry.Listing) Service
 )
 
-var services = make([]Service, 0)
-var websockets = make([]WebSocket, 0)
+var services = make([]ServiceFactory, 0)
 
-func RegisterService(s Service) {
+func RegisterService(s ServiceFactory) {
 	services = append(services, s)
 }
 
-func RegisterWebSocket(r WebSocket) {
-	websockets = append(websockets, r)
+func Create(app *fiber.App) serviceRunner {
+	svcs := make([]Service, 0)
+	lists := entry.NewListing()
+
+	for _, service := range services {
+		svcs = append(svcs, service(lists))
+	}
+
+	return serviceRunner{
+		lists:    lists,
+		app:      app,
+		services: svcs,
+	}
 }
 
-func createService(app *fiber.App) error {
-	for _, service := range services {
-		if init, ok := service.(ServiceInitter); ok {
+func (s *serviceRunner) Run() {
+	if listInitter, ok := s.lists.List.(entry.ListInitter); ok {
+		if err := listInitter.Init(); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if listInitter, ok := s.lists.Queue.(entry.ListInitter); ok {
+		if err := listInitter.Init(); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	for _, service := range s.services {
+		if init, ok := service.(Initter); ok {
 			if err := init.Init(); err != nil {
-				return err
+				log.Fatal(err)
 			}
 		}
 
+		// create web socket if any
+		if ws, ok := service.(WebSocket); ok {
+			for _, channel := range ws.Sockets() {
+				s.app.Add(channel.Method, channel.Path, websocket.New(channel.Handler))
+			}
+		}
+
+		// create the service
 		for _, route := range service.Router() {
-			app.Add(route.Method, route.Path, route.Handler)
+			s.app.Add(route.Method, route.Path, route.Handler)
 		}
-	}
-
-	return nil
-}
-
-func closeService(app *fiber.App) error {
-	for _, service := range services {
-		if closer, ok := service.(ServiceCloser); ok {
-			if err := closer.Close(); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func createRealtime(app *fiber.App) error {
-	for _, service := range websockets {
-		if init, ok := service.(ServiceInitter); ok {
-			if err := init.Init(); err != nil {
-				return err
-			}
-		}
-
-		for _, channel := range service.Sockets() {
-			app.Add(channel.Method, channel.Path, websocket.New(channel.Handler))
-		}
-	}
-
-	return nil
-}
-
-func closeRealtime(app *fiber.App) error {
-	for _, service := range websockets {
-		if closer, ok := service.(ServiceCloser); ok {
-			if err := closer.Close(); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func Create(app *fiber.App) {
-	if err := createService(app); err != nil {
-		log.Fatal("Error creating service:", err)
-	}
-
-	if err := createRealtime(app); err != nil {
-		log.Fatal("Error creating web socket service:", err)
 	}
 }
 
-func Shutdown(app *fiber.App) {
-	signals := []os.Signal{syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGSTOP}
+func (s *serviceRunner) Shutdown() {
+	signals := []os.Signal{syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGSTOP, os.Interrupt}
 	ch := make(chan os.Signal, 1)
 
 	signal.Notify(ch, signals...)
@@ -117,14 +114,26 @@ func Shutdown(app *fiber.App) {
 		<-ch
 		log.Println("Shutting down...")
 
-		if err := closeService(app); err != nil {
-			log.Fatal("Error creating service:", err)
+		defer s.app.Shutdown()
+
+		for _, service := range s.services {
+			if closer, ok := service.(Closer); ok {
+				if err := closer.Close(); err != nil {
+					log.Fatal(err)
+				}
+			}
 		}
 
-		if err := closeRealtime(app); err != nil {
-			log.Fatal("Error creating web socket service:", err)
+		if listCloser, ok := s.lists.List.(entry.ListCloser); ok {
+			if err := listCloser.Close(); err != nil {
+				log.Fatal(err)
+			}
 		}
 
-		app.Shutdown()
+		if listCloser, ok := s.lists.Queue.(entry.ListCloser); ok {
+			if err := listCloser.Close(); err != nil {
+				log.Fatal(err)
+			}
+		}
 	}()
 }

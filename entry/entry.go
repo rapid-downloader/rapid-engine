@@ -54,7 +54,6 @@ type (
 		setting          *setting.Setting
 		cookies          []*http.Cookie
 		headers          Headers
-		queue            Queue
 		downloadProvider string
 	}
 
@@ -76,12 +75,6 @@ func AddCookies(cookies []*http.Cookie) Options {
 func AddHeaders(headers Headers) Options {
 	return func(o *option) {
 		o.headers = headers
-	}
-}
-
-func UseQueue(queue Queue) Options {
-	return func(o *option) {
-		o.queue = queue
 	}
 }
 
@@ -158,14 +151,6 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		Resumable_:        resumable,
 		request:           req,
 		DownloadProvider_: downloadProvider,
-	}
-
-	if opt.queue == nil {
-		return entry, nil
-	}
-
-	if err := opt.queue.Push(entry); err != nil {
-		return nil, err
 	}
 
 	return entry, nil
