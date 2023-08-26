@@ -48,8 +48,8 @@ func (r *progress) Read(payload []byte) (n int, err error) {
 			ID:         r.ID(),
 			Index:      r.index,
 			Downloaded: r.downloaded,
-			Progress:   r.progress,
 			Size:       r.chunkSize,
+			Progress:   r.progress,
 		}
 
 		r.onprogress(data)

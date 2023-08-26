@@ -1,11 +1,13 @@
 package entry
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"mime"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -45,7 +47,7 @@ func randID(n int) string {
 
 func handleDuplicate(filename string) string {
 	name := filename
-	if _, err := os.Stat(filename); err != nil {
+	if file, _ := os.Stat(filename); file == nil {
 		return name
 	}
 
@@ -54,37 +56,27 @@ func handleDuplicate(filename string) string {
 		return name
 	}
 
+	ext := filepath.Ext(name)
 	prefix := regex.FindStringSubmatch(name)
 	if len(prefix) == 0 {
 		// add number before ext of a file if there is none
-		split := strings.Split(name, ".")
-		if len(split) > 2 {
-			split[len(split)-2] += " (1)"
-		} else {
-			split[0] += " (1)"
-		}
+		name = strings.ReplaceAll(name, ext, fmt.Sprint(" (1)", ext))
 
 		// re-check if the current name has duplication
-		name = strings.Join(split, ".")
 		name = handleDuplicate(name)
 		return name
 	}
 
 	// if it's still has, add the number
-	name = strings.ReplaceAll(name, " "+prefix[0], "")
+	name = strings.ReplaceAll(name, " "+prefix[0]+ext, "")
 	number, err := strconv.Atoi(prefix[1])
 	if err != nil {
 		return name
 	}
-	split := strings.Split(name, ".")
-	if len(split) > 2 {
-		split[len(split)-2] += " (" + strconv.Itoa(number+1) + ")"
-	} else {
-		split[0] += " (" + strconv.Itoa(number+1) + ")"
-	}
+
+	name = fmt.Sprintf("%s (%d)%s", name, number+1, ext)
 
 	// re-check if the current name has duplication
-	name = strings.Join(split, ".")
 	name = handleDuplicate(name)
 
 	return name
@@ -127,5 +119,4 @@ func calculatePartition(size int64, setting *setting.Setting) int {
 	}
 
 	return int(size / partsize)
-
 }

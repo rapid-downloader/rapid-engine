@@ -24,3 +24,10 @@ func Created(ctx *fiber.Ctx) error {
 			"status": "ok",
 		})
 }
+
+func NotFound(ctx *fiber.Ctx) error {
+	return ctx.Status(fiber.StatusNotFound).
+		JSON(fiber.Map{
+			"status": "not found",
+		})
+}

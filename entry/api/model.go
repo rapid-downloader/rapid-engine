@@ -31,7 +31,7 @@ type (
 	}
 
 	queueRequest struct {
-		Urls []string `json:"urls"`
+		Requests []request `json:"request"`
 	}
 )
 
@@ -57,6 +57,7 @@ func (r *request) toOptions() []entry.Options {
 	options = append(options,
 		entry.UseSetting(setting),
 		entry.AddCookies(cookies),
+		entry.UseDownloader(r.Provider),
 		entry.AddHeaders(entry.Headers{
 			"Content-Type": r.ContentType,
 			"User-Agent":   r.UserAgent,

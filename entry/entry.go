@@ -25,7 +25,7 @@ type (
 		Cancel()
 		Expired() bool
 		Refresh() error
-		DownloadProvider() string
+		Downloader() string
 	}
 
 	Headers map[string]string
@@ -78,7 +78,7 @@ func AddHeaders(headers Headers) Options {
 	}
 }
 
-func UseDownloadProvider(provider string) Options {
+func UseDownloader(provider string) Options {
 	return func(o *option) {
 		o.downloadProvider = provider
 	}
@@ -117,8 +117,8 @@ func Fetch(url string, options ...Options) (Entry, error) {
 	}
 
 	resumable := resumable(res)
-	filename := handleDuplicate(filename(res))
-	location := filepath.Join(opt.setting.DownloadLocation, filename)
+	filename := filename(res)
+	location := handleDuplicate(filepath.Join(opt.setting.DownloadLocation, filename))
 	filetype := filetype(filename)
 	ctx, cancel := context.WithCancel(context.Background())
 	chunklen := calculatePartition(res.ContentLength, opt.setting)
@@ -216,7 +216,7 @@ func (e *entry) Refresh() error {
 	return nil
 }
 
-func (e *entry) DownloadProvider() string {
+func (e *entry) Downloader() string {
 	return e.DownloadProvider_
 }
 

@@ -36,8 +36,8 @@ type (
 	}
 
 	Listing struct {
-		List
-		Queue
+		List  List
+		Queue Queue
 	}
 )
 
