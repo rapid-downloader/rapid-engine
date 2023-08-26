@@ -117,8 +117,8 @@ func Fetch(url string, options ...Options) (Entry, error) {
 	}
 
 	resumable := resumable(res)
-	filename := filename(res)
-	location := handleDuplicate(filepath.Join(opt.setting.DownloadLocation, filename))
+	filename := filepath.Base(handleDuplicate(filepath.Join(opt.setting.DownloadLocation, filename(res))))
+	location := filepath.Join(opt.setting.DownloadLocation, filename)
 	filetype := filetype(filename)
 	ctx, cancel := context.WithCancel(context.Background())
 	chunklen := calculatePartition(res.ContentLength, opt.setting)

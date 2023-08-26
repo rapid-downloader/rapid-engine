@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/goccy/go-json"
@@ -31,33 +32,6 @@ func (s *downloaderService) Init() error {
 // TODO: call the app to spawn if not openned yet
 // TODO; perform logic to get user auth if user, for example, choose gdrive provider (for future)
 
-func (s *downloaderService) downloadQueue(ctx *fiber.Ctx) error {
-	channel := api.CreateChannel("queue")
-
-	if s.entries.Queue.IsEmpty() {
-		return response.Error(ctx, "Queue is empty")
-	}
-
-	go func() {
-		for !s.entries.Queue.IsEmpty() {
-			entry := s.entries.Queue.Pop()
-
-			dl := downloader.New(entry.Downloader())
-			if watcher, ok := dl.(downloader.Watcher); ok {
-				watcher.Watch(func(data ...interface{}) {
-					channel.Publish(data[0])
-				})
-			}
-			if err := dl.Download(entry); err != nil {
-				log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
-				return
-			}
-		}
-	}()
-
-	return response.Success(ctx, nil)
-}
-
 func (s *downloaderService) download(ctx *fiber.Ctx) error {
 	client := ctx.Params("client")
 	channel := api.CreateChannel(client)
@@ -76,12 +50,13 @@ func (s *downloaderService) download(ctx *fiber.Ctx) error {
 	}
 
 	go func() {
+		defer s.entries.List.Remove(entry.ID())
+
 		if err := dl.Download(entry); err != nil {
 			log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
 			return
 		}
 
-		s.entries.List.Remove(entry.ID())
 		channel.Publish(downloader.Progressbar{
 			ID:   id,
 			Done: true,
@@ -91,20 +66,88 @@ func (s *downloaderService) download(ctx *fiber.Ctx) error {
 	return response.Success(ctx, nil)
 }
 
-// TODO: implement this
 func (s *downloaderService) resume(ctx *fiber.Ctx) error {
+	client := ctx.Params("client")
+	channel := api.CreateChannel(client)
+
+	id := ctx.Params("id")
+	entry, ok := s.entries.List.Find(id)
+	if !ok {
+		return response.NotFound(ctx)
+	}
+
+	dl := downloader.New(entry.Downloader())
+	if watcher, ok := dl.(downloader.Watcher); ok {
+		watcher.Watch(func(data ...interface{}) {
+			channel.Publish(data[0])
+		})
+	}
+
+	go func() {
+		defer s.entries.List.Remove(entry.ID())
+
+		if err := dl.Resume(entry); err != nil {
+			log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
+			return
+		}
+
+		channel.Publish(downloader.Progressbar{
+			ID:   id,
+			Done: true,
+		})
+	}()
 
 	return response.Success(ctx, nil)
 }
 
-// TODO: implement this
-func (s *downloaderService) pause(ctx *fiber.Ctx) error {
+func (s *downloaderService) restart(ctx *fiber.Ctx) error {
+	client := ctx.Params("client")
+	channel := api.CreateChannel(client)
+
+	id := ctx.Params("id")
+	entry, ok := s.entries.List.Find(id)
+	if !ok {
+		return response.NotFound(ctx)
+	}
+
+	dl := downloader.New(entry.Downloader())
+	if watcher, ok := dl.(downloader.Watcher); ok {
+		watcher.Watch(func(data ...interface{}) {
+			channel.Publish(data[0])
+		})
+	}
+
+	go func() {
+		defer s.entries.List.Remove(entry.ID())
+
+		if err := dl.Restart(entry); err != nil {
+			log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
+			return
+		}
+
+		channel.Publish(downloader.Progressbar{
+			ID:   id,
+			Done: true,
+		})
+	}()
 
 	return response.Success(ctx, nil)
 }
 
-// TODO: implement this
 func (s *downloaderService) stop(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	entry, ok := s.entries.List.Find(id)
+	if !ok {
+		return response.NotFound(ctx)
+	}
+
+	defer s.entries.List.Remove(entry.ID())
+
+	dl := downloader.New(entry.Downloader())
+
+	if err := dl.Stop(entry); err != nil {
+		return response.Error(ctx, fmt.Sprint("Error stopping download:", err.Error()))
+	}
 
 	return response.Success(ctx, nil)
 }
@@ -112,16 +155,20 @@ func (s *downloaderService) stop(ctx *fiber.Ctx) error {
 func (s *downloaderService) progressBar(c *websocket.Conn) {
 	channel := api.CreateChannel(c.Params("client"))
 
+	defer c.Close()
+
 	for data := range channel.Subscribe() {
-		payload, err := json.Marshal(data)
+		progressBar := data.(downloader.Progressbar)
+
+		payload, err := json.Marshal(progressBar)
 		if err != nil {
 			log.Println("Error marshalling data:", err)
-			return
+			break
 		}
 
 		if err := c.WriteMessage(websocket.TextMessage, payload); err != nil {
 			log.Println("Error sending progress data:", err)
-			return
+			break
 		}
 	}
 }
@@ -129,14 +176,14 @@ func (s *downloaderService) progressBar(c *websocket.Conn) {
 func (s *downloaderService) Router() []api.Route {
 	return []api.Route{
 		{
-			Path:    "/:client/download/queue",
-			Method:  "GET",
-			Handler: s.downloadQueue,
-		},
-		{
 			Path:    "/:client/download/:id",
 			Method:  "GET",
 			Handler: s.download,
+		},
+		{
+			Path:    "/:client/restart/:id",
+			Method:  "PUT",
+			Handler: s.restart,
 		},
 		{
 			Path:    "/:client/resume/:id",
@@ -144,12 +191,7 @@ func (s *downloaderService) Router() []api.Route {
 			Handler: s.resume,
 		},
 		{
-			Path:    "/:client/pause/:id",
-			Method:  "PUT",
-			Handler: s.pause,
-		},
-		{
-			Path:    "/:client/stop/:id",
+			Path:    "/stop/:id",
 			Method:  "PUT",
 			Handler: s.stop,
 		},
