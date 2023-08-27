@@ -34,13 +34,20 @@ func (s *downloaderService) Init() error {
 
 func (s *downloaderService) download(ctx *fiber.Ctx) error {
 	client := ctx.Params("client")
-	channel := api.CreateChannel(client)
 
 	id := ctx.Params("id")
 	entry, ok := s.entries.List.Find(id)
 	if !ok {
 		return response.NotFound(ctx)
 	}
+
+	go s.doDownload(entry, client)
+
+	return response.Success(ctx, nil)
+}
+
+func (s *downloaderService) doDownload(entry entry.Entry, client string) {
+	channel := api.CreateChannel(client)
 
 	dl := downloader.New(entry.Downloader())
 	if watcher, ok := dl.(downloader.Watcher); ok {
@@ -49,26 +56,21 @@ func (s *downloaderService) download(ctx *fiber.Ctx) error {
 		})
 	}
 
-	go func() {
-		defer s.entries.List.Remove(entry.ID())
+	if err := dl.Download(entry); err != nil {
+		log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
+		return
+	}
 
-		if err := dl.Download(entry); err != nil {
-			log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
-			return
-		}
+	s.entries.List.Remove(entry.ID())
 
-		channel.Publish(downloader.Progressbar{
-			ID:   id,
-			Done: true,
-		})
-	}()
-
-	return response.Success(ctx, nil)
+	channel.Publish(downloader.Progressbar{
+		ID:   entry.ID(),
+		Done: true,
+	})
 }
 
 func (s *downloaderService) resume(ctx *fiber.Ctx) error {
 	client := ctx.Params("client")
-	channel := api.CreateChannel(client)
 
 	id := ctx.Params("id")
 	entry, ok := s.entries.List.Find(id)
@@ -76,39 +78,13 @@ func (s *downloaderService) resume(ctx *fiber.Ctx) error {
 		return response.NotFound(ctx)
 	}
 
-	dl := downloader.New(entry.Downloader())
-	if watcher, ok := dl.(downloader.Watcher); ok {
-		watcher.Watch(func(data ...interface{}) {
-			channel.Publish(data[0])
-		})
-	}
-
-	go func() {
-		defer s.entries.List.Remove(entry.ID())
-
-		if err := dl.Resume(entry); err != nil {
-			log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
-			return
-		}
-
-		channel.Publish(downloader.Progressbar{
-			ID:   id,
-			Done: true,
-		})
-	}()
+	go s.doResume(entry, client)
 
 	return response.Success(ctx, nil)
 }
 
-func (s *downloaderService) restart(ctx *fiber.Ctx) error {
-	client := ctx.Params("client")
+func (s *downloaderService) doResume(entry entry.Entry, client string) {
 	channel := api.CreateChannel(client)
-
-	id := ctx.Params("id")
-	entry, ok := s.entries.List.Find(id)
-	if !ok {
-		return response.NotFound(ctx)
-	}
 
 	dl := downloader.New(entry.Downloader())
 	if watcher, ok := dl.(downloader.Watcher); ok {
@@ -117,21 +93,53 @@ func (s *downloaderService) restart(ctx *fiber.Ctx) error {
 		})
 	}
 
-	go func() {
-		defer s.entries.List.Remove(entry.ID())
+	if err := dl.Resume(entry); err != nil {
+		log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
+		return
+	}
 
-		if err := dl.Restart(entry); err != nil {
-			log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
-			return
-		}
+	s.entries.List.Remove(entry.ID())
+	channel.Publish(downloader.Progressbar{
+		ID:   entry.ID(),
+		Done: true,
+	})
+}
 
-		channel.Publish(downloader.Progressbar{
-			ID:   id,
-			Done: true,
-		})
-	}()
+func (s *downloaderService) restart(ctx *fiber.Ctx) error {
+	client := ctx.Params("client")
+
+	id := ctx.Params("id")
+	entry, ok := s.entries.List.Find(id)
+	if !ok {
+		return response.NotFound(ctx)
+	}
+
+	go s.doRestart(entry, client)
 
 	return response.Success(ctx, nil)
+}
+
+func (s *downloaderService) doRestart(entry entry.Entry, client string) {
+	channel := api.CreateChannel(client)
+
+	dl := downloader.New(entry.Downloader())
+	if watcher, ok := dl.(downloader.Watcher); ok {
+		watcher.Watch(func(data ...interface{}) {
+			channel.Publish(data[0])
+		})
+	}
+
+	defer s.entries.List.Remove(entry.ID())
+
+	if err := dl.Restart(entry); err != nil {
+		log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
+		return
+	}
+
+	channel.Publish(downloader.Progressbar{
+		ID:   entry.ID(),
+		Done: true,
+	})
 }
 
 func (s *downloaderService) stop(ctx *fiber.Ctx) error {
