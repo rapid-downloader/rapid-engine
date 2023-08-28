@@ -12,6 +12,8 @@ import (
 	"github.com/rapid-downloader/rapid/downloader"
 	"github.com/rapid-downloader/rapid/entry"
 	response "github.com/rapid-downloader/rapid/helper"
+	"github.com/rapid-downloader/rapid/logger"
+	"github.com/rapid-downloader/rapid/setting"
 )
 
 type downloaderService struct {
@@ -28,7 +30,6 @@ func (s *downloaderService) Init() error {
 	return nil
 }
 
-// TODO: find a way to resume and cancel for certain entry based on their pointer
 // TODO: call the app to spawn if not openned yet
 // TODO; perform logic to get user auth if user, for example, choose gdrive provider (for future)
 
@@ -49,7 +50,14 @@ func (s *downloaderService) download(ctx *fiber.Ctx) error {
 func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 	channel := api.CreateChannel(client)
 
-	dl := downloader.New(entry.Downloader())
+	setting := setting.Get()
+	logger := logger.New(logger.FS, setting)
+
+	dl := downloader.New(entry.Downloader(),
+		downloader.UseSetting(setting),
+		downloader.UseLogger(logger),
+	)
+
 	if watcher, ok := dl.(downloader.Watcher); ok {
 		watcher.Watch(func(data ...interface{}) {
 			channel.Publish(data[0])
@@ -86,7 +94,14 @@ func (s *downloaderService) resume(ctx *fiber.Ctx) error {
 func (s *downloaderService) doResume(entry entry.Entry, client string) {
 	channel := api.CreateChannel(client)
 
-	dl := downloader.New(entry.Downloader())
+	setting := setting.Get()
+	logger := logger.New(logger.FS, setting)
+
+	dl := downloader.New(entry.Downloader(),
+		downloader.UseSetting(setting),
+		downloader.UseLogger(logger),
+	)
+
 	if watcher, ok := dl.(downloader.Watcher); ok {
 		watcher.Watch(func(data ...interface{}) {
 			channel.Publish(data[0])
@@ -122,7 +137,14 @@ func (s *downloaderService) restart(ctx *fiber.Ctx) error {
 func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 	channel := api.CreateChannel(client)
 
-	dl := downloader.New(entry.Downloader())
+	setting := setting.Get()
+	logger := logger.New(logger.FS, setting)
+
+	dl := downloader.New(entry.Downloader(),
+		downloader.UseSetting(setting),
+		downloader.UseLogger(logger),
+	)
+
 	if watcher, ok := dl.(downloader.Watcher); ok {
 		watcher.Watch(func(data ...interface{}) {
 			channel.Publish(data[0])
@@ -142,6 +164,16 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 	})
 }
 
+func (s *downloaderService) pause(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+	entry, ok := s.entries.List.Find(id)
+	if !ok {
+		return response.NotFound(ctx)
+	}
+
+	return s.doStop(entry, ctx)
+}
+
 func (s *downloaderService) stop(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	entry, ok := s.entries.List.Find(id)
@@ -149,9 +181,19 @@ func (s *downloaderService) stop(ctx *fiber.Ctx) error {
 		return response.NotFound(ctx)
 	}
 
-	defer s.entries.List.Remove(entry.ID())
+	s.entries.List.Remove(entry.ID())
 
-	dl := downloader.New(entry.Downloader())
+	return s.doStop(entry, ctx)
+}
+
+func (s *downloaderService) doStop(entry entry.Entry, ctx *fiber.Ctx) error {
+	setting := setting.Get()
+	logger := logger.New(logger.FS, setting)
+
+	dl := downloader.New(entry.Downloader(),
+		downloader.UseSetting(setting),
+		downloader.UseLogger(logger),
+	)
 
 	if err := dl.Stop(entry); err != nil {
 		return response.Error(ctx, fmt.Sprint("Error stopping download:", err.Error()))
@@ -197,6 +239,11 @@ func (s *downloaderService) Router() []api.Route {
 			Path:    "/:client/resume/:id",
 			Method:  "PUT",
 			Handler: s.resume,
+		},
+		{
+			Path:    "/pause/:id",
+			Method:  "PUT",
+			Handler: s.pause,
 		},
 		{
 			Path:    "/stop/:id",

@@ -7,6 +7,8 @@ import (
 	"github.com/rapid-downloader/rapid/api"
 	"github.com/rapid-downloader/rapid/entry"
 	response "github.com/rapid-downloader/rapid/helper"
+	"github.com/rapid-downloader/rapid/logger"
+	"github.com/rapid-downloader/rapid/setting"
 )
 
 const (
@@ -35,7 +37,12 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 		return response.Error(ctx, err.Error())
 	}
 
-	entry, err := entry.Fetch(req.Url, req.toOptions()...)
+	logger := logger.New(logger.FS, setting.Get())
+
+	options := req.toOptions()
+	options = append(options, entry.UseLogger(logger))
+
+	entry, err := entry.Fetch(req.Url, options...)
 	if err != nil {
 		return response.Error(ctx, err.Error())
 	}

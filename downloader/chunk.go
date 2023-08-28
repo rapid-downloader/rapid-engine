@@ -104,7 +104,7 @@ func resumePosition(location string) int64 {
 	return resumePos
 }
 
-func newChunk(entry entry.Entry, index int, setting *setting.Setting, wg *sync.WaitGroup) *chunk {
+func newChunk(entry entry.Entry, index int, logger logger.Logger, setting *setting.Setting, wg *sync.WaitGroup) *chunk {
 	chunkSize := entry.Size() / int64(entry.ChunkLen())
 	start, end := calculatePosition(entry, chunkSize, index)
 
@@ -117,7 +117,7 @@ func newChunk(entry entry.Entry, index int, setting *setting.Setting, wg *sync.W
 		start:      start,
 		end:        end,
 		size:       chunkSize,
-		logger:     logger.New(setting),
+		logger:     logger,
 		onprogress: nil,
 	}
 }

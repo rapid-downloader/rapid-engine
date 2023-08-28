@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"path/filepath"
 
@@ -35,7 +36,6 @@ type (
 	}
 
 	entry struct {
-		logger.Logger     `json:"-"`
 		ctx               context.Context    `json:"-"`
 		cancel            context.CancelFunc `json:"-"`
 		request           *http.Request      `json:"-"`
@@ -54,6 +54,7 @@ type (
 		setting          *setting.Setting
 		cookies          []*http.Cookie
 		headers          Headers
+		logger           logger.Logger
 		downloadProvider string
 	}
 
@@ -84,6 +85,12 @@ func UseDownloader(provider string) Options {
 	}
 }
 
+func UseLogger(l logger.Logger) Options {
+	return func(o *option) {
+		o.logger = l
+	}
+}
+
 func Fetch(url string, options ...Options) (Entry, error) {
 	opt := &option{
 		setting: setting.Get(),
@@ -93,7 +100,11 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		option(opt)
 	}
 
-	logger := logger.New(opt.setting)
+	logger := logger.New(logger.StdOut, opt.setting)
+	if opt.logger != nil {
+		logger = opt.logger
+	}
+
 	logger.Print("Fetching url...")
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -144,7 +155,6 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		Filetype_:         filetype,
 		URL_:              url,
 		Size_:             size,
-		Logger:            logger,
 		ChunkLen_:         chunklen,
 		ctx:               ctx,
 		cancel:            cancel,
@@ -196,13 +206,13 @@ func (e *entry) Cancel() {
 	e.cancel()
 }
 
-// TODO: test this
 func (e *entry) Expired() bool {
 	req := e.request.Clone(context.Background())
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		e.Print("Error checking url expiration:", err.Error())
+		log.Println("Error fetching expired status:", err.Error())
+		return true
 	}
 
 	return res.StatusCode != http.StatusOK && res.ContentLength <= 0
