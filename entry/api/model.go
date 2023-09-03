@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/rapid-downloader/rapid/entry"
-	"github.com/rapid-downloader/rapid/helper"
 	"github.com/rapid-downloader/rapid/setting"
 )
 
@@ -18,7 +17,7 @@ type (
 		Expires  time.Time `json:"expirationDate"`
 		Secure   bool      `json:"secure"`
 		HttpOnly bool      `json:"httpOnly"`
-		SameSite string    `json:"sameSite"`
+		SameSite int       `json:"sameSite"`
 	}
 
 	request struct {
@@ -48,7 +47,7 @@ func (r *request) toOptions() []entry.Options {
 			Expires:  cookie.Expires,
 			Secure:   cookie.Secure,
 			HttpOnly: cookie.HttpOnly,
-			SameSite: helper.ToSamesite(cookie.SameSite),
+			SameSite: http.SameSite(cookie.SameSite),
 		}
 	}
 
