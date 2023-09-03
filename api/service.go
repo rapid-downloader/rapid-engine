@@ -36,10 +36,6 @@ type (
 		Handler func(c *websocket.Conn)
 	}
 
-	WebSocket interface {
-		Sockets() []Socket
-	}
-
 	serviceRunner struct {
 		lists    *entry.Listing
 		services []Service
@@ -87,13 +83,6 @@ func (s *serviceRunner) Run() {
 		if init, ok := service.(Initter); ok {
 			if err := init.Init(); err != nil {
 				log.Fatal(err)
-			}
-		}
-
-		// create web socket if any
-		if ws, ok := service.(WebSocket); ok {
-			for _, channel := range ws.Sockets() {
-				s.app.Add(channel.Method, channel.Path, websocket.New(channel.Handler))
 			}
 		}
 
