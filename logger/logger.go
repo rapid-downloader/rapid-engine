@@ -12,26 +12,32 @@ type (
 		Print(...interface{})
 	}
 
-	LoggerFactory func(setting.Setting) Logger
+	LogCloser interface {
+		Close() error
+	}
+
+	LoggerFactory func(*setting.Setting) Logger
 )
 
 var loggermap = make(map[string]LoggerFactory)
 var instance sync.Map
 
-func New(setting setting.Setting) Logger {
-	val, ok := instance.Load(setting.LoggerProvider())
+// TODO: rethink how we should properly close the logger if we are going to provide file base log
+
+func New(provider string, s *setting.Setting) Logger {
+	val, ok := instance.Load(provider)
 	if ok {
 		return val.(Logger)
 	}
 
-	logger, ok := loggermap[setting.LoggerProvider()]
+	logger, ok := loggermap[provider]
 	if !ok {
-		log.Panicf("Provider %s is not implemented", setting.LoggerProvider())
+		log.Panicf("Provider %s is not implemented", provider)
 		return nil
 	}
 
-	l := logger(setting)
-	instance.Store(setting.LoggerProvider(), l)
+	l := logger(s)
+	instance.Store(provider, l)
 
 	return l
 }

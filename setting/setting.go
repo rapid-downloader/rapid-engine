@@ -3,36 +3,21 @@ package setting
 import (
 	"os"
 	"path/filepath"
+
+	"github.com/BurntSushi/toml"
 )
 
 type (
-	Setting interface {
-		// location where the download will be placed
-		DownloadLocation() string
-
-		// location where the data for this application will be stored
-		DataLocation() string
-
-		// max retry will be executed when there is an Error downloading
-		MaxRetry() int
-
-		// logger provider that will be used to log something, e.g file, std, etc
-		LoggerProvider() string
-
-		// minimum size in MB for a chunk
-		MinChunkSize() int64
-	}
-
-	settings struct {
-		downloadLocation string
-		dataLocation     string
-		maxRetry         int
-		loggerProvider   string
-		minChunkSize     int64
+	Setting struct {
+		DownloadLocation string `toml:"download_location"`
+		DataLocation     string `toml:"data_location"`
+		MaxRetry         int    `toml:"max_retry"`
+		LoggerProvider   string `toml:"logger_provider"`
+		MinChunkSize     int64  `toml:"min_chunk_size"`
 	}
 )
 
-func Default() Setting {
+func Default() *Setting {
 	home, _ := os.UserHomeDir()
 
 	// location
@@ -41,31 +26,34 @@ func Default() Setting {
 
 	os.MkdirAll(data, os.ModePerm)
 
-	return &settings{
-		downloadLocation: download,
-		dataLocation:     data,
-		maxRetry:         3,
-		loggerProvider:   "stdout",
-		minChunkSize:     1024 * 1024 * 5, // 5 MB
+	return &Setting{
+		DownloadLocation: download,
+		DataLocation:     data,
+		MaxRetry:         3,
+		LoggerProvider:   "stdout",
+		MinChunkSize:     1024 * 1024 * 5, // 5 MB
 	}
 }
 
-func (s *settings) DownloadLocation() string {
-	return s.downloadLocation
-}
+func Get() *Setting {
+	s := Default()
+	location := filepath.Join(s.DataLocation, "setting.toml")
 
-func (s *settings) DataLocation() string {
-	return s.dataLocation
-}
+	file, err := os.Open(location)
+	if err != nil {
+		f, _ := os.Create(location)
+		toml.NewEncoder(f).Encode(s)
 
-func (s *settings) MaxRetry() int {
-	return s.maxRetry
-}
+		return s
+	}
 
-func (s *settings) LoggerProvider() string {
-	return s.loggerProvider
-}
+	defer file.Close()
 
-func (s *settings) MinChunkSize() int64 {
-	return s.minChunkSize
+	var setting Setting
+	decoder := toml.NewDecoder(file)
+	if _, err := decoder.Decode(&setting); err != nil {
+		return s
+	}
+
+	return &setting
 }

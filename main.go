@@ -1,41 +1,37 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"time"
 
-	"github.com/rapid-downloader/rapid/downloader"
-	"github.com/rapid-downloader/rapid/entry"
+	"github.com/goccy/go-json"
+	"github.com/gofiber/contrib/websocket"
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/rapid-downloader/rapid/api"
+	_ "github.com/rapid-downloader/rapid/downloader/api"
+	_ "github.com/rapid-downloader/rapid/entry/api"
 )
 
 func main() {
-	url := "https://link.testfile.org/PDF50MB"
-	entry, err := entry.Fetch(url)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println(entry)
-
-	dl := downloader.New(downloader.Default)
-	dl.(downloader.Watcher).Watch(func(data ...interface{}) {
-		log.Println(data...)
+	app := fiber.New(fiber.Config{
+		JSONEncoder: json.Marshal,
+		JSONDecoder: json.Unmarshal,
 	})
 
-	go func() {
-		if err := dl.Download(entry); err != nil {
-			log.Fatal(err)
+	app.Use(logger.New())
+	app.Use("/ws", func(c *fiber.Ctx) error {
+		if websocket.IsWebSocketUpgrade(c) {
+			c.Locals("allowed", true)
+			return c.Next()
 		}
-	}()
 
-	time.Sleep(10 * time.Second)
+		return fiber.ErrUpgradeRequired
+	})
 
-	if err := dl.Stop(entry); err != nil {
-		log.Fatal(err)
-	}
+	api := api.Create(app)
 
-	if err := dl.Resume(entry); err != nil {
-		log.Fatal(err)
-	}
+	api.Run()
+	api.Shutdown()
+
+	log.Fatal(app.Listen(":9999"))
 }

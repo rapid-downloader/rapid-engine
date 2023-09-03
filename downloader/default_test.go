@@ -102,7 +102,7 @@ func TestStopDownloadLocalOneChunkSuccess(t *testing.T) {
 	setting := setting.Default()
 
 	for i := 0; i < entry.ChunkLen(); i++ {
-		chunkfile := filepath.Join(setting.DownloadLocation(), fmt.Sprintf("%s-%d", entry.ID(), i))
+		chunkfile := filepath.Join(setting.DownloadLocation, fmt.Sprintf("%s-%d", entry.ID(), i))
 		if _, err := os.Stat(chunkfile); err == nil {
 			if err := os.Remove(chunkfile); err != nil {
 				t.Error("Error removing chunk file:", err.Error())
@@ -140,7 +140,7 @@ func TestStopDownloadLocalMultipleChunkSuccess(t *testing.T) {
 	setting := setting.Default()
 
 	for i := 0; i < entry.ChunkLen(); i++ {
-		chunkfile := filepath.Join(setting.DownloadLocation(), fmt.Sprintf("%s-%d", entry.ID(), i))
+		chunkfile := filepath.Join(setting.DownloadLocation, fmt.Sprintf("%s-%d", entry.ID(), i))
 		if _, err := os.Stat(chunkfile); err == nil {
 			if err := os.Remove(chunkfile); err != nil {
 				t.Error("Error removing chunk file:", err.Error())

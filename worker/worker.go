@@ -50,25 +50,27 @@ func New(ctx context.Context, poolsize int, amount int) (Pool, error) {
 	}, nil
 }
 
+func (w *worker) executeJobs() {
+	for {
+		select {
+		case <-w.quit:
+			return
+		case job, ok := <-w.jobs:
+			if !ok {
+				return
+			}
+
+			if err := job.Execute(w.ctx); err != nil {
+				job.OnError(w.ctx, err)
+			}
+		}
+	}
+}
+
 func (w *worker) Start() {
 	w.start.Do(func() {
 		for i := 0; i < w.poolsize; i++ {
-			go func(id int) {
-				for {
-					select {
-					case <-w.quit:
-						return
-					case job, ok := <-w.jobs:
-						if !ok {
-							return
-						}
-
-						if err := job.Execute(w.ctx); err != nil {
-							job.OnError(w.ctx, err)
-						}
-					}
-				}
-			}(i)
+			go w.executeJobs()
 		}
 	})
 }

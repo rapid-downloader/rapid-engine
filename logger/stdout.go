@@ -11,7 +11,7 @@ type stdLogger struct{}
 const StdOut = "stdout"
 
 // stdoutLogger will log into std out
-func stdoutLogger(_ setting.Setting) Logger {
+func stdoutLogger(_ *setting.Setting) Logger {
 	return &stdLogger{}
 }
 

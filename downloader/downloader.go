@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/rapid-downloader/rapid/entry"
+	"github.com/rapid-downloader/rapid/logger"
 	"github.com/rapid-downloader/rapid/setting"
 )
 
@@ -24,16 +25,24 @@ type (
 	OnProgress func(data ...interface{})
 
 	option struct {
-		setting setting.Setting
+		setting *setting.Setting
+		logger  logger.Logger
 	}
 
 	Options func(o *option)
 )
 
-func UseSetting(setting setting.Setting) Options {
+func UseSetting(setting *setting.Setting) Options {
 	return func(o *option) {
 		o.setting = setting
 	}
+}
+
+func UseLogger(l logger.Logger) Options {
+	return func(o *option) {
+		o.logger = l
+	}
+
 }
 
 var downloadermap = make(map[string]DownloaderFactory)
