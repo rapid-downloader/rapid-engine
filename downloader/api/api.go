@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/goccy/go-json"
 
@@ -204,9 +205,9 @@ func (s *downloaderService) doStop(entry entry.Entry, ctx *fiber.Ctx) error {
 
 func (s *downloaderService) progressBar(c *websocket.Conn) {
 	channel := api.CreateChannel(c.Params("client"))
-
 	done := make(chan bool)
-	defer c.Close()
+
+	ping := time.NewTicker(time.Second)
 
 	go func() {
 		for {
@@ -226,22 +227,31 @@ func (s *downloaderService) progressBar(c *websocket.Conn) {
 		select {
 		case <-done:
 			return
-		case data := <-channel.Subscribe():
+		case data, ok := <-channel.Subscribe():
+			if !ok {
+				return
+			}
+
 			progressBar := data.(downloader.Progressbar)
 
 			payload, err := json.Marshal(progressBar)
 			if err != nil {
 				log.Println("Error marshalling data:", err)
-				return
+				break
 			}
 
+			c.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.WriteMessage(websocket.TextMessage, payload); err != nil {
 				log.Println("Error sending progress data:", err)
 				return
 			}
+		case <-ping.C:
+			if err := c.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Println("Error ping:", err)
+				return
+			}
 		}
 	}
-
 }
 
 func (s *downloaderService) Router() []api.Route {
