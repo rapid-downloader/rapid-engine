@@ -1,4 +1,4 @@
-package logger
+package log
 
 import (
 	"fmt"
@@ -33,20 +33,21 @@ func FSLogger(s *setting.Setting) Logger {
 	}
 }
 
-func formatMessage(args ...interface{}) string {
+func prefix() string {
 	const FORMAT = "01-02-2006 15:04:05"
 	timestamp := time.Now().Format(FORMAT)
 
-	msg := timestamp + " "
-	for _, arg := range args {
-		msg += fmt.Sprint(arg, " ")
-	}
-	msg += "\n"
-
-	return msg
+	return timestamp + " "
 }
 
-func (l *fsLogger) print(args ...interface{}) string {
+func formatMessage(args ...interface{}) string {
+	return prefix() + fmt.Sprintln(args...)
+}
+
+func (l *fsLogger) println(args ...interface{}) string {
+	l.Lock()
+	defer l.Unlock()
+
 	file, err := os.OpenFile(l.path, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	if err != nil {
 		log.Fatal("Error creating or opening file log:", err.Error())
@@ -62,12 +63,12 @@ func (l *fsLogger) print(args ...interface{}) string {
 	return msg
 }
 
-func (l *fsLogger) Print(args ...interface{}) {
-	l.print(args...)
+func (l *fsLogger) Println(args ...interface{}) {
+	l.println(args...)
 }
 
-func (l *fsLogger) Panic(args ...interface{}) {
-	msg := l.print(args...)
+func (l *fsLogger) Panicln(args ...interface{}) {
+	msg := l.println(args...)
 	fmt.Print(msg)
 	os.Exit(1)
 }

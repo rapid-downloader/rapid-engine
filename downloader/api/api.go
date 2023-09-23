@@ -13,17 +13,16 @@ import (
 	"github.com/rapid-downloader/rapid/downloader"
 	"github.com/rapid-downloader/rapid/entry"
 	response "github.com/rapid-downloader/rapid/helper"
-	"github.com/rapid-downloader/rapid/logger"
 	"github.com/rapid-downloader/rapid/setting"
 )
 
 type downloaderService struct {
-	entries *entry.Listing
+	memstore entry.Store
 }
 
-func newService(entries *entry.Listing) api.Service {
+func newService(memstore entry.Store) api.Service {
 	return &downloaderService{
-		entries: entries,
+		memstore: memstore,
 	}
 }
 
@@ -38,8 +37,8 @@ func (s *downloaderService) download(ctx *fiber.Ctx) error {
 	client := ctx.Params("client")
 
 	id := ctx.Params("id")
-	entry, ok := s.entries.List.Find(id)
-	if !ok {
+	entry := s.memstore.Get(id)
+	if entry == nil {
 		return response.NotFound(ctx)
 	}
 
@@ -52,11 +51,9 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 	channel := api.CreateChannel(client)
 
 	setting := setting.Get()
-	logger := logger.New(logger.FS, setting)
 
 	dl := downloader.New(entry.Downloader(),
 		downloader.UseSetting(setting),
-		downloader.UseLogger(logger),
 	)
 
 	if watcher, ok := dl.(downloader.Watcher); ok {
@@ -70,7 +67,7 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 		return
 	}
 
-	s.entries.List.Remove(entry.ID())
+	s.memstore.Delete(entry.ID())
 
 	channel.Publish(downloader.Progressbar{
 		ID:   entry.ID(),
@@ -82,8 +79,8 @@ func (s *downloaderService) resume(ctx *fiber.Ctx) error {
 	client := ctx.Params("client")
 
 	id := ctx.Params("id")
-	entry, ok := s.entries.List.Find(id)
-	if !ok {
+	entry := s.memstore.Get(id)
+	if entry == nil {
 		return response.NotFound(ctx)
 	}
 
@@ -96,11 +93,9 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 	channel := api.CreateChannel(client)
 
 	setting := setting.Get()
-	logger := logger.New(logger.FS, setting)
 
 	dl := downloader.New(entry.Downloader(),
 		downloader.UseSetting(setting),
-		downloader.UseLogger(logger),
 	)
 
 	if watcher, ok := dl.(downloader.Watcher); ok {
@@ -114,7 +109,7 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 		return
 	}
 
-	s.entries.List.Remove(entry.ID())
+	s.memstore.Delete(entry.ID())
 	channel.Publish(downloader.Progressbar{
 		ID:   entry.ID(),
 		Done: true,
@@ -125,8 +120,8 @@ func (s *downloaderService) restart(ctx *fiber.Ctx) error {
 	client := ctx.Params("client")
 
 	id := ctx.Params("id")
-	entry, ok := s.entries.List.Find(id)
-	if !ok {
+	entry := s.memstore.Get(id)
+	if entry == nil {
 		return response.NotFound(ctx)
 	}
 
@@ -139,11 +134,9 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 	channel := api.CreateChannel(client)
 
 	setting := setting.Get()
-	logger := logger.New(logger.FS, setting)
 
 	dl := downloader.New(entry.Downloader(),
 		downloader.UseSetting(setting),
-		downloader.UseLogger(logger),
 	)
 
 	if watcher, ok := dl.(downloader.Watcher); ok {
@@ -152,7 +145,7 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 		})
 	}
 
-	defer s.entries.List.Remove(entry.ID())
+	defer s.memstore.Delete(entry.ID())
 
 	if err := dl.Restart(entry); err != nil {
 		log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
@@ -167,8 +160,8 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 
 func (s *downloaderService) pause(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	entry, ok := s.entries.List.Find(id)
-	if !ok {
+	entry := s.memstore.Get(id)
+	if entry == nil {
 		return response.NotFound(ctx)
 	}
 
@@ -177,23 +170,21 @@ func (s *downloaderService) pause(ctx *fiber.Ctx) error {
 
 func (s *downloaderService) stop(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
-	entry, ok := s.entries.List.Find(id)
-	if !ok {
+	entry := s.memstore.Get(id)
+	if entry == nil {
 		return response.NotFound(ctx)
 	}
 
-	s.entries.List.Remove(entry.ID())
+	s.memstore.Delete(entry.ID())
 
 	return s.doStop(entry, ctx)
 }
 
 func (s *downloaderService) doStop(entry entry.Entry, ctx *fiber.Ctx) error {
 	setting := setting.Get()
-	logger := logger.New(logger.FS, setting)
 
 	dl := downloader.New(entry.Downloader(),
 		downloader.UseSetting(setting),
-		downloader.UseLogger(logger),
 	)
 
 	if err := dl.Stop(entry); err != nil {

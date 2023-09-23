@@ -1,16 +1,13 @@
 package entry
 
 import (
-	"container/list"
-
-	"github.com/rapid-downloader/rapid/db"
-	"github.com/rapid-downloader/rapid/logger"
-	"github.com/rapid-downloader/rapid/setting"
+	llist "container/list"
 )
 
 type (
 	List interface {
-		Insert(entry Entry)
+		Entries() map[string]Entry
+		Insert(id string, entry Entry)
 		Remove(id string)
 		Find(id string) (Entry, bool)
 		Len() int
@@ -25,116 +22,50 @@ type (
 		Range() []Entry
 	}
 
-	ListInitter interface {
-		Init() error
-	}
-
-	ListCloser interface {
-		Close() error
-	}
-
-	entryList struct {
-		s       *setting.Setting
+	list struct {
 		entries map[string]Entry
-		store   Store
-		log     logger.Logger
 	}
 
 	queue struct {
-		s       *setting.Setting
-		entries list.List
-		store   Store
-		log     logger.Logger
-	}
-
-	Listing struct {
-		List  List
-		Queue Queue
+		entries *llist.List
 	}
 )
 
-func NewListing(s *setting.Setting, log logger.Logger) *Listing {
-	return &Listing{
-		NewList(s, log),
-		NewQueue(s, log),
-	}
-}
-
-func NewList(s *setting.Setting, log logger.Logger) List {
-	return &entryList{
+func NewList() List {
+	return &list{
 		entries: map[string]Entry{},
-		store:   NewStore(db.DB(), s, log),
-		log:     log,
 	}
 }
 
-func (l *entryList) populateList() {
-	entries := l.store.GetAll("list")
-
-	for _, entry := range entries {
-		res, err := Fetch(entry.URL())
-		if err != nil {
-			l.log.Print("Error fetching init for", entry.Name(), ":", err.Error())
-			continue
-		}
-
-		l.entries[entry.ID()] = res
-	}
-
-	if err := l.store.DeleteAll("list"); err != nil {
-		l.log.Print("Error deleting stored data:", err.Error())
-	}
+func (l *list) Insert(id string, entry Entry) {
+	l.entries[id] = entry
 }
 
-func (l *entryList) Init() error {
-	go l.populateList()
-	return nil
+func (l *list) Entries() map[string]Entry {
+	return l.entries
 }
 
-func (l *entryList) Close() error {
-	// TODO: save the lists into persistent disk
-	var ids []string
-	var entries []Entry
-
-	for k, v := range l.entries {
-		ids = append(ids, k)
-		entries = append(entries, v)
-	}
-
-	return l.store.SetBatch("list", ids, entries)
-}
-
-func (l *entryList) Insert(entry Entry) {
-	l.entries[entry.ID()] = entry
-}
-
-func (l *entryList) Remove(id string) {
+func (l *list) Remove(id string) {
 	delete(l.entries, id)
 }
 
-func (l *entryList) Len() int {
+func (l *list) Len() int {
 	return len(l.entries)
 }
 
-func (l *entryList) Find(id string) (Entry, bool) {
+func (l *list) Find(id string) (Entry, bool) {
 	entry, ok := l.entries[id]
 	return entry, ok
 }
 
-func (l *entryList) IsEmpty() bool {
+func (l *list) IsEmpty() bool {
 	return len(l.entries) == 0
 }
 
-func NewQueue(s *setting.Setting, log logger.Logger) Queue {
+func NewQueue() Queue {
 	return &queue{
-		s:     s,
-		store: NewStore(db.DB(), s, log),
+		entries: llist.New(),
 	}
-}
-
-func (q *queue) Init() error {
-	// TODO: fetch the queue into persistent disk
-	return nil
 }
 
 func (q *queue) Push(entry Entry) {
@@ -163,9 +94,4 @@ func (q *queue) Range() []Entry {
 	}
 
 	return entries
-}
-
-func (q *queue) Close() error {
-	// TODO: save the queue into persistent disk
-	return nil
 }
