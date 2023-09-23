@@ -12,7 +12,6 @@ type (
 		DownloadLocation string `toml:"download_location"`
 		DataLocation     string `toml:"data_location"`
 		MaxRetry         int    `toml:"max_retry"`
-		LoggerProvider   string `toml:"logger_provider"`
 		MinChunkSize     int64  `toml:"min_chunk_size"`
 	}
 )
@@ -30,7 +29,6 @@ func Default() *Setting {
 		DownloadLocation: download,
 		DataLocation:     data,
 		MaxRetry:         3,
-		LoggerProvider:   "stdout",
 		MinChunkSize:     1024 * 1024 * 5, // 5 MB
 	}
 }

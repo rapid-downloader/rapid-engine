@@ -1,14 +1,10 @@
-package entry
+package api
 
 import (
-	"fmt"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/rapid-downloader/rapid/api"
 	"github.com/rapid-downloader/rapid/entry"
 	response "github.com/rapid-downloader/rapid/helper"
-	"github.com/rapid-downloader/rapid/logger"
-	"github.com/rapid-downloader/rapid/setting"
 )
 
 const (
@@ -17,12 +13,12 @@ const (
 )
 
 type entryService struct {
-	entries *entry.Listing
+	memstore entry.Store
 }
 
-func newService(entries *entry.Listing) api.Service {
+func newService(memstore entry.Store) api.Service {
 	return &entryService{
-		entries: entries,
+		memstore: memstore,
 	}
 }
 
@@ -37,40 +33,14 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 		return response.Error(ctx, err.Error())
 	}
 
-	logger := logger.New(logger.FS, setting.Get())
-
-	options := req.toOptions()
-	options = append(options, entry.UseLogger(logger))
-
-	entry, err := entry.Fetch(req.Url, options...)
+	entry, err := entry.Fetch(req.Url, req.toOptions()...)
 	if err != nil {
 		return response.Error(ctx, err.Error())
 	}
 
-	s.entries.List.Insert(entry)
+	s.memstore.Set(entry.ID(), entry)
 
 	return response.Success(ctx, entry)
-}
-
-func (s *entryService) queue(ctx *fiber.Ctx) error {
-	var req queueRequest
-
-	if err := ctx.BodyParser(&req); err != nil {
-		return response.Error(ctx, err.Error())
-	}
-
-	entries := make([]entry.Entry, len(req.Requests))
-	for i, request := range req.Requests {
-		entry, err := entry.Fetch(request.Url, request.toOptions()...)
-		if err != nil {
-			return response.Error(ctx, fmt.Sprint("Error fetching url:", entry))
-		}
-
-		entries[i] = entry
-		s.entries.Queue.Push(entry)
-	}
-
-	return response.Success(ctx, entries)
 }
 
 func (s *entryService) Router() []api.Route {
@@ -79,11 +49,6 @@ func (s *entryService) Router() []api.Route {
 			Path:    "/fetch",
 			Method:  "POST",
 			Handler: s.fetch,
-		},
-		{
-			Path:    "/queue",
-			Method:  "POST",
-			Handler: s.queue,
 		},
 	}
 }

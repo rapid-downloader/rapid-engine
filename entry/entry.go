@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"path/filepath"
 
-	"github.com/rapid-downloader/rapid/logger"
+	"github.com/rapid-downloader/rapid/log"
 	"github.com/rapid-downloader/rapid/setting"
 )
 
@@ -54,7 +53,6 @@ type (
 		setting          *setting.Setting
 		cookies          []*http.Cookie
 		headers          Headers
-		logger           logger.Logger
 		downloadProvider string
 	}
 
@@ -85,12 +83,6 @@ func UseDownloader(provider string) Options {
 	}
 }
 
-func UseLogger(l logger.Logger) Options {
-	return func(o *option) {
-		o.logger = l
-	}
-}
-
 func Fetch(url string, options ...Options) (Entry, error) {
 	opt := &option{
 		setting: setting.Get(),
@@ -100,16 +92,11 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		option(opt)
 	}
 
-	logger := logger.New(logger.StdOut, opt.setting)
-	if opt.logger != nil {
-		logger = opt.logger
-	}
-
-	logger.Print("Fetching url...")
+	log.Println("Fetching url...")
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		logger.Print("Error preparing request:", err.Error())
+		log.Println("Error preparing request:", err.Error())
 		return nil, err
 	}
 
@@ -121,9 +108,10 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		req.Header.Add(key, value)
 	}
 
+	// retry fetch 3x if error
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		logger.Print("Error fetching url:", err.Error())
+		log.Println("Error fetching url:", err.Error(), "Retrying....")
 		return nil, err
 	}
 
@@ -140,7 +128,7 @@ func Fetch(url string, options ...Options) (Entry, error) {
 
 	size := res.ContentLength
 	if size == -1 {
-		logger.Print("Downloading with unknown size...")
+		log.Println("Downloading with unknown size...")
 	}
 
 	downloadProvider := "default"

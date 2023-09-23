@@ -1,4 +1,4 @@
-package logger
+package log
 
 import (
 	"fmt"
@@ -33,20 +33,18 @@ func FSLogger(s *setting.Setting) Logger {
 	}
 }
 
-func formatMessage(args ...interface{}) string {
+func prefix() string {
 	const FORMAT = "01-02-2006 15:04:05"
 	timestamp := time.Now().Format(FORMAT)
 
-	msg := timestamp + " "
-	for _, arg := range args {
-		msg += fmt.Sprint(arg, " ")
-	}
-	msg += "\n"
-
-	return msg
+	return timestamp + " "
 }
 
-func (l *fsLogger) Print(args ...interface{}) {
+func formatMessage(args ...interface{}) string {
+	return prefix() + fmt.Sprintln(args...)
+}
+
+func (l *fsLogger) println(args ...interface{}) string {
 	l.Lock()
 	defer l.Unlock()
 
@@ -61,6 +59,18 @@ func (l *fsLogger) Print(args ...interface{}) {
 	if _, err := file.WriteString(msg); err != nil {
 		log.Println("Error writing into log file:", err.Error())
 	}
+
+	return msg
+}
+
+func (l *fsLogger) Println(args ...interface{}) {
+	l.println(args...)
+}
+
+func (l *fsLogger) Panicln(args ...interface{}) {
+	msg := l.println(args...)
+	fmt.Print(msg)
+	os.Exit(1)
 }
 
 func init() {

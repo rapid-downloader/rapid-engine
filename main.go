@@ -8,11 +8,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rapid-downloader/rapid/api"
+	"github.com/rapid-downloader/rapid/db"
 	_ "github.com/rapid-downloader/rapid/downloader/api"
 	_ "github.com/rapid-downloader/rapid/entry/api"
 )
 
 func main() {
+	db.Open()
+	defer db.Close()
+
 	app := fiber.New(fiber.Config{
 		JSONEncoder: json.Marshal,
 		JSONDecoder: json.Unmarshal,
@@ -33,5 +37,7 @@ func main() {
 	api.Run()
 	api.Shutdown()
 
-	log.Fatal(app.Listen(":9999"))
+	if err := app.Listen(":9999"); err != nil {
+		log.Fatal(err)
+	}
 }

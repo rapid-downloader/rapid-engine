@@ -37,12 +37,12 @@ type (
 	}
 
 	serviceRunner struct {
-		lists    *entry.Listing
+		memstore entry.Store
 		services []Service
 		app      *fiber.App
 	}
 
-	ServiceFactory func(entries *entry.Listing) Service
+	ServiceFactory func(memstore entry.Store) Service
 )
 
 var services = make([]ServiceFactory, 0)
@@ -53,28 +53,22 @@ func RegisterService(s ServiceFactory) {
 
 func Create(app *fiber.App) serviceRunner {
 	svcs := make([]Service, 0)
-	lists := entry.NewListing()
+	memstore := entry.Memstore()
 
 	for _, service := range services {
-		svcs = append(svcs, service(lists))
+		svcs = append(svcs, service(memstore))
 	}
 
 	return serviceRunner{
-		lists:    lists,
+		memstore: memstore,
 		app:      app,
 		services: svcs,
 	}
 }
 
 func (s *serviceRunner) Run() {
-	if listInitter, ok := s.lists.List.(entry.ListInitter); ok {
-		if err := listInitter.Init(); err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	if listInitter, ok := s.lists.Queue.(entry.ListInitter); ok {
-		if err := listInitter.Init(); err != nil {
+	if memstore, ok := s.memstore.(entry.MemoryInitter); ok {
+		if err := memstore.Init(); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -113,14 +107,8 @@ func (s *serviceRunner) Shutdown() {
 			}
 		}
 
-		if listCloser, ok := s.lists.List.(entry.ListCloser); ok {
-			if err := listCloser.Close(); err != nil {
-				log.Fatal(err)
-			}
-		}
-
-		if listCloser, ok := s.lists.Queue.(entry.ListCloser); ok {
-			if err := listCloser.Close(); err != nil {
+		if memstore, ok := s.memstore.(entry.MemoryCloser); ok {
+			if err := memstore.Close(); err != nil {
 				log.Fatal(err)
 			}
 		}

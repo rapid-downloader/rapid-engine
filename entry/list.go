@@ -1,10 +1,13 @@
 package entry
 
-import "container/list"
+import (
+	llist "container/list"
+)
 
 type (
 	List interface {
-		Insert(entry Entry)
+		Entries() map[string]Entry
+		Insert(id string, entry Entry)
 		Remove(id string)
 		Find(id string) (Entry, bool)
 		Len() int
@@ -19,79 +22,50 @@ type (
 		Range() []Entry
 	}
 
-	ListInitter interface {
-		Init() error
-	}
-
-	ListCloser interface {
-		Close() error
-	}
-
-	entryList struct {
+	list struct {
 		entries map[string]Entry
 	}
 
 	queue struct {
-		entries list.List
-	}
-
-	Listing struct {
-		List  List
-		Queue Queue
+		entries *llist.List
 	}
 )
 
-func NewListing() *Listing {
-	return &Listing{
-		NewList(),
-		NewQueue(),
-	}
-}
-
 func NewList() List {
-	return &entryList{
-		map[string]Entry{},
+	return &list{
+		entries: map[string]Entry{},
 	}
 }
 
-func (l *entryList) Init() error {
-	// TODO: fetch the lists into persistent disk
-	return nil
+func (l *list) Insert(id string, entry Entry) {
+	l.entries[id] = entry
 }
 
-func (l *entryList) Insert(entry Entry) {
-	l.entries[entry.ID()] = entry
+func (l *list) Entries() map[string]Entry {
+	return l.entries
 }
 
-func (l *entryList) Remove(id string) {
+func (l *list) Remove(id string) {
 	delete(l.entries, id)
 }
 
-func (l *entryList) Len() int {
+func (l *list) Len() int {
 	return len(l.entries)
 }
 
-func (l *entryList) Find(id string) (Entry, bool) {
+func (l *list) Find(id string) (Entry, bool) {
 	entry, ok := l.entries[id]
 	return entry, ok
 }
 
-func (l *entryList) IsEmpty() bool {
+func (l *list) IsEmpty() bool {
 	return len(l.entries) == 0
 }
 
-func (l *entryList) Close() error {
-	// TODO: save the lists into persistent disk
-	return nil
-}
-
 func NewQueue() Queue {
-	return &queue{}
-}
-
-func (q *queue) Init() error {
-	// TODO: fetch the queue into persistent disk
-	return nil
+	return &queue{
+		entries: llist.New(),
+	}
 }
 
 func (q *queue) Push(entry Entry) {
@@ -120,9 +94,4 @@ func (q *queue) Range() []Entry {
 	}
 
 	return entries
-}
-
-func (q *queue) Close() error {
-	// TODO: save the queue into persistent disk
-	return nil
 }

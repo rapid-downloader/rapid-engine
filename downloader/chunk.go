@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/rapid-downloader/rapid/entry"
-	"github.com/rapid-downloader/rapid/logger"
+	"github.com/rapid-downloader/rapid/log"
 	"github.com/rapid-downloader/rapid/setting"
 )
 
@@ -65,7 +65,6 @@ func (r *progress) Close() error {
 type chunk struct {
 	entry      entry.Entry
 	setting    *setting.Setting
-	logger     logger.Logger
 	wg         *sync.WaitGroup
 	path       string
 	index      int
@@ -104,7 +103,7 @@ func resumePosition(location string) int64 {
 	return resumePos
 }
 
-func newChunk(entry entry.Entry, index int, logger logger.Logger, setting *setting.Setting, wg *sync.WaitGroup) *chunk {
+func newChunk(entry entry.Entry, index int, setting *setting.Setting, wg *sync.WaitGroup) *chunk {
 	chunkSize := entry.Size() / int64(entry.ChunkLen())
 	start, end := calculatePosition(entry, chunkSize, index)
 
@@ -117,7 +116,6 @@ func newChunk(entry entry.Entry, index int, logger logger.Logger, setting *setti
 		start:      start,
 		end:        end,
 		size:       chunkSize,
-		logger:     logger,
 		onprogress: nil,
 	}
 }
@@ -128,25 +126,25 @@ func (c *chunk) download(ctx context.Context) error {
 
 	srcFile, err := c.getDownloadFile(ctx)
 	if err != nil {
-		c.logger.Print("Error fetching chunk file:", err.Error())
+		log.Println("Error fetching chunk file:", err.Error())
 		return err
 	}
 	defer srcFile.Close()
 
 	dstFile, err := c.getSaveFile()
 	if err != nil {
-		c.logger.Print("Error creating temp file for chunk:", err.Error())
+		log.Println("Error creating temp file for chunk:", err.Error())
 		return err
 	}
 	defer dstFile.Close()
 
 	if _, err := io.Copy(dstFile, srcFile); err != nil {
-		c.logger.Print("Error downloading chunk:", err.Error())
+		log.Println("Error downloading chunk:", err.Error())
 		return err
 	}
 
 	elapsed := time.Since(start)
-	c.logger.Print("Chunk", c.index, "downloaded in", elapsed.Seconds(), "s")
+	log.Println("Chunk", c.index, "downloaded in", elapsed.Seconds(), "s")
 
 	return nil
 }
@@ -163,7 +161,7 @@ func (c *chunk) OnError(ctx context.Context, err error) {
 	var e error
 	for i := 0; i < c.setting.MaxRetry; i++ {
 		c.wg.Add(1)
-		c.logger.Print("Error downloading file:", err.Error(), ". Retrying...")
+		log.Println("Error downloading file:", err.Error(), ". Retrying...")
 
 		if c.entry.Resumable() {
 			c.start += resumePosition(c.path)
@@ -174,7 +172,7 @@ func (c *chunk) OnError(ctx context.Context, err error) {
 		}
 	}
 
-	c.logger.Print("Failed downloading file:", err.Error())
+	log.Println("Failed downloading file:", err.Error())
 }
 
 func (c *chunk) onProgress(onprogress OnProgress) {
@@ -188,12 +186,12 @@ func (c *chunk) getDownloadFile(ctx context.Context) (io.ReadCloser, error) {
 		bytesRange := fmt.Sprintf("bytes=%d-%d", c.start, c.end)
 		req.Header.Add("Range", bytesRange)
 
-		c.logger.Print("Downloading chunk", c.index, "from", c.start, "to", c.end, fmt.Sprintf("(~%d MB)", (c.end-c.start)/(1024*1024)))
+		log.Println("Downloading chunk", c.index, "from", c.start, "to", c.end, fmt.Sprintf("(~%d MB)", (c.end-c.start)/(1024*1024)))
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		c.logger.Print("Error fething chunk body:", err.Error())
+		log.Println("Error fething chunk body:", err.Error())
 		return nil, err
 	}
 
@@ -214,7 +212,7 @@ func (c *chunk) getSaveFile() (io.WriteCloser, error) {
 	tmpFilename := filepath.Join(c.setting.DownloadLocation, fmt.Sprintf("%s-%d", c.entry.ID(), c.index))
 	file, err := os.OpenFile(tmpFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		c.logger.Print("Error creating or appending file:", err.Error())
+		log.Println("Error creating or appending file:", err.Error())
 		return nil, err
 	}
 
