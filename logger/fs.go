@@ -46,10 +46,7 @@ func formatMessage(args ...interface{}) string {
 	return msg
 }
 
-func (l *fsLogger) Print(args ...interface{}) {
-	l.Lock()
-	defer l.Unlock()
-
+func (l *fsLogger) print(args ...interface{}) string {
 	file, err := os.OpenFile(l.path, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	if err != nil {
 		log.Fatal("Error creating or opening file log:", err.Error())
@@ -61,6 +58,18 @@ func (l *fsLogger) Print(args ...interface{}) {
 	if _, err := file.WriteString(msg); err != nil {
 		log.Println("Error writing into log file:", err.Error())
 	}
+
+	return msg
+}
+
+func (l *fsLogger) Print(args ...interface{}) {
+	l.print(args...)
+}
+
+func (l *fsLogger) Panic(args ...interface{}) {
+	msg := l.print(args...)
+	fmt.Print(msg)
+	os.Exit(1)
 }
 
 func init() {

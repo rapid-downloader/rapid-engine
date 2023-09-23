@@ -10,6 +10,7 @@ import (
 type (
 	Logger interface {
 		Print(...interface{})
+		Panic(...interface{})
 	}
 
 	LogCloser interface {

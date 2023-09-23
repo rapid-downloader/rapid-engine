@@ -121,9 +121,23 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		req.Header.Add(key, value)
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	var res *http.Response
+	for i := 0; i < opt.setting.MaxRetry; i++ {
+		var e error
+
+		res, e = http.DefaultClient.Do(req)
+		if e != nil {
+			logger.Print("Error fetching url:", e.Error(), "Retrying....")
+		}
+
+		if e == nil {
+			break
+		}
+
+		err = e
+	}
+
 	if err != nil {
-		logger.Print("Error fetching url:", err.Error())
 		return nil, err
 	}
 

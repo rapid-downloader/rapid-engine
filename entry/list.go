@@ -1,6 +1,12 @@
 package entry
 
-import "container/list"
+import (
+	"container/list"
+
+	"github.com/rapid-downloader/rapid/db"
+	"github.com/rapid-downloader/rapid/logger"
+	"github.com/rapid-downloader/rapid/setting"
+)
 
 type (
 	List interface {
@@ -28,11 +34,17 @@ type (
 	}
 
 	entryList struct {
+		s       *setting.Setting
 		entries map[string]Entry
+		store   Store
+		log     logger.Logger
 	}
 
 	queue struct {
+		s       *setting.Setting
 		entries list.List
+		store   Store
+		log     logger.Logger
 	}
 
 	Listing struct {
@@ -41,22 +53,55 @@ type (
 	}
 )
 
-func NewListing() *Listing {
+func NewListing(s *setting.Setting, log logger.Logger) *Listing {
 	return &Listing{
-		NewList(),
-		NewQueue(),
+		NewList(s, log),
+		NewQueue(s, log),
 	}
 }
 
-func NewList() List {
+func NewList(s *setting.Setting, log logger.Logger) List {
 	return &entryList{
-		map[string]Entry{},
+		entries: map[string]Entry{},
+		store:   NewStore(db.DB(), s, log),
+		log:     log,
+	}
+}
+
+func (l *entryList) populateList() {
+	entries := l.store.GetAll("list")
+
+	for _, entry := range entries {
+		res, err := Fetch(entry.URL())
+		if err != nil {
+			l.log.Print("Error fetching init for", entry.Name(), ":", err.Error())
+			continue
+		}
+
+		l.entries[entry.ID()] = res
+	}
+
+	if err := l.store.DeleteAll("list"); err != nil {
+		l.log.Print("Error deleting stored data:", err.Error())
 	}
 }
 
 func (l *entryList) Init() error {
-	// TODO: fetch the lists into persistent disk
+	go l.populateList()
 	return nil
+}
+
+func (l *entryList) Close() error {
+	// TODO: save the lists into persistent disk
+	var ids []string
+	var entries []Entry
+
+	for k, v := range l.entries {
+		ids = append(ids, k)
+		entries = append(entries, v)
+	}
+
+	return l.store.SetBatch("list", ids, entries)
 }
 
 func (l *entryList) Insert(entry Entry) {
@@ -80,13 +125,11 @@ func (l *entryList) IsEmpty() bool {
 	return len(l.entries) == 0
 }
 
-func (l *entryList) Close() error {
-	// TODO: save the lists into persistent disk
-	return nil
-}
-
-func NewQueue() Queue {
-	return &queue{}
+func NewQueue(s *setting.Setting, log logger.Logger) Queue {
+	return &queue{
+		s:     s,
+		store: NewStore(db.DB(), s, log),
+	}
 }
 
 func (q *queue) Init() error {

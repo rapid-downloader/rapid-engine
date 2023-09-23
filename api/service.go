@@ -9,6 +9,8 @@ import (
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rapid-downloader/rapid/entry"
+	"github.com/rapid-downloader/rapid/logger"
+	"github.com/rapid-downloader/rapid/setting"
 )
 
 type (
@@ -52,8 +54,11 @@ func RegisterService(s ServiceFactory) {
 }
 
 func Create(app *fiber.App) serviceRunner {
+	setting := setting.Get()
+	logger := logger.New(logger.FS, setting)
+
 	svcs := make([]Service, 0)
-	lists := entry.NewListing()
+	lists := entry.NewListing(setting, logger)
 
 	for _, service := range services {
 		svcs = append(svcs, service(lists))
