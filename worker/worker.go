@@ -85,5 +85,6 @@ func (w *worker) Add(job Job) {
 func (w *worker) Stop() {
 	w.stop.Do(func() {
 		close(w.quit)
+		close(w.jobs)
 	})
 }
