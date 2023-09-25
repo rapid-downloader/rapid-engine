@@ -33,6 +33,11 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 		return response.Error(ctx, err.Error())
 	}
 
+	client := ctx.Params("client")
+	if client != "browser" {
+		//TODO: get cookies etc with headless browser
+	}
+
 	entry, err := entry.Fetch(req.Url, req.toOptions()...)
 	if err != nil {
 		return response.Error(ctx, err.Error())
@@ -46,7 +51,7 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 func (s *entryService) Router() []api.Route {
 	return []api.Route{
 		{
-			Path:    "/fetch",
+			Path:    "/:client/fetch",
 			Method:  "POST",
 			Handler: s.fetch,
 		},

@@ -141,7 +141,7 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		Name_:             filename,
 		Location_:         location,
 		Filetype_:         filetype,
-		URL_:              url,
+		URL_:              res.Request.URL.String(),
 		Size_:             size,
 		ChunkLen_:         chunklen,
 		ctx:               ctx,
