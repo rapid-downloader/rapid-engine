@@ -2,7 +2,6 @@ package entry
 
 import (
 	"github.com/goccy/go-json"
-	"github.com/rapid-downloader/rapid/db"
 	"github.com/rapid-downloader/rapid/log"
 	"go.etcd.io/bbolt"
 )
@@ -135,65 +134,13 @@ func (s *store) DeleteAll() error {
 }
 
 type memstore struct {
-	disk Store
 	list List
-}
-
-type MemoryInitter interface {
-	Init() error
-}
-type MemoryCloser interface {
-	Close() error
 }
 
 func Memstore() Store {
 	return &memstore{
-		disk: NewStore("list", db.DB()),
 		list: NewList(),
 	}
-}
-
-func (s *memstore) populate() {
-	entries := s.disk.GetAll()
-
-	if len(entries) > 0 {
-		log.Println("There is unfinished download. Restoring...")
-	}
-
-	for _, entry := range entries {
-		res, err := Fetch(entry.URL())
-		if err != nil {
-			log.Println("Error fetching init for", entry.Name(), ":", err.Error())
-			continue
-		}
-
-		s.list.Insert(entry.ID(), res)
-	}
-
-	if err := s.disk.DeleteAll(); err != nil {
-		log.Println("Error deleting stored data:", err.Error())
-	}
-}
-
-func (s *memstore) Init() error {
-	go s.populate()
-	return nil
-}
-
-func (s *memstore) Close() error {
-	var ids []string
-	var entries []Entry
-
-	for k, v := range s.list.Entries() {
-		ids = append(ids, k)
-		entries = append(entries, v)
-	}
-
-	if len(entries) > 0 {
-		log.Println("There is unfinished download. Backuping...")
-	}
-
-	return s.disk.SetBatch(ids, entries)
 }
 
 func (s *memstore) Get(id string) Entry {
