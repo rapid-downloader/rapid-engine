@@ -67,12 +67,6 @@ func Create(app *fiber.App) serviceRunner {
 }
 
 func (s *serviceRunner) Run() {
-	if memstore, ok := s.memstore.(entry.MemoryInitter); ok {
-		if err := memstore.Init(); err != nil {
-			log.Fatal(err)
-		}
-	}
-
 	for _, service := range s.services {
 		if init, ok := service.(Initter); ok {
 			if err := init.Init(); err != nil {
@@ -104,12 +98,6 @@ func (s *serviceRunner) Shutdown() {
 				if err := closer.Close(); err != nil {
 					log.Fatal(err)
 				}
-			}
-		}
-
-		if memstore, ok := s.memstore.(entry.MemoryCloser); ok {
-			if err := memstore.Close(); err != nil {
-				log.Fatal(err)
 			}
 		}
 	}()
