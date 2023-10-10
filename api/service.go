@@ -96,5 +96,9 @@ func (s *serviceRunner) Shutdown() {
 				}
 			}
 		}
+
+		for _, channel := range channels {
+			channel.Close()
+		}
 	}()
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/rapid-downloader/rapid/db"
 	_ "github.com/rapid-downloader/rapid/downloader/api"
 	_ "github.com/rapid-downloader/rapid/entry/api"
+	_ "github.com/rapid-downloader/rapid/log/api"
 )
 
 func main() {
