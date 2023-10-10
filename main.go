@@ -6,6 +6,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/rapid-downloader/rapid/api"
 	"github.com/rapid-downloader/rapid/db"
@@ -23,6 +24,7 @@ func main() {
 		JSONDecoder: json.Unmarshal,
 	})
 
+	app.Use(cors.New())
 	app.Use(logger.New())
 	app.Use("/ws", func(c *fiber.Ctx) error {
 		if websocket.IsWebSocketUpgrade(c) {
