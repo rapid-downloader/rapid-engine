@@ -8,7 +8,6 @@ import (
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
-	"github.com/rapid-downloader/rapid/entry"
 )
 
 type (
@@ -37,12 +36,11 @@ type (
 	}
 
 	serviceRunner struct {
-		memstore entry.Store
 		services []Service
 		app      *fiber.App
 	}
 
-	ServiceFactory func(memstore entry.Store) Service
+	ServiceFactory func() Service
 )
 
 var services = make([]ServiceFactory, 0)
@@ -53,14 +51,12 @@ func RegisterService(s ServiceFactory) {
 
 func Create(app *fiber.App) serviceRunner {
 	svcs := make([]Service, 0)
-	memstore := entry.Memstore()
 
 	for _, service := range services {
-		svcs = append(svcs, service(memstore))
+		svcs = append(svcs, service())
 	}
 
 	return serviceRunner{
-		memstore: memstore,
 		app:      app,
 		services: svcs,
 	}
@@ -99,6 +95,10 @@ func (s *serviceRunner) Shutdown() {
 					log.Fatal(err)
 				}
 			}
+		}
+
+		for _, channel := range channels {
+			channel.Close()
 		}
 	}()
 }

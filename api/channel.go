@@ -1,19 +1,26 @@
 package api
 
+import "sync"
+
 type (
+	OnPublished func(data interface{})
+
 	Channel interface {
 		Publish(data interface{})
-		Subscribe() <-chan interface{}
+		Subscribe(callback ...OnPublished) <-chan interface{}
+		Close() error
 	}
 
 	channel struct {
-		ch chan interface{}
+		ch   chan interface{}
+		once sync.Once
 	}
 )
 
 func NewChannel() Channel {
 	return &channel{
 		make(chan interface{}, 100),
+		sync.Once{},
 	}
 }
 
@@ -21,8 +28,24 @@ func (c *channel) Publish(data interface{}) {
 	c.ch <- data
 }
 
-func (c *channel) Subscribe() <-chan interface{} {
+func (c *channel) Subscribe(callback ...OnPublished) <-chan interface{} {
+	if len(callback) > 0 {
+		for data := range c.ch {
+			callback[0](data)
+		}
+
+		return nil
+	}
+
 	return c.ch
+}
+
+func (c *channel) Close() error {
+	c.once.Do(func() {
+		close(c.ch)
+	})
+
+	return nil
 }
 
 var channels = map[string]Channel{

@@ -18,16 +18,34 @@ import (
 
 type downloaderService struct {
 	memstore entry.Store
+	channel  api.Channel
 }
 
-func newService(memstore entry.Store) api.Service {
+func newService() api.Service {
 	return &downloaderService{
-		memstore: memstore,
+		memstore: entry.Memstore(),
+		channel:  api.CreateChannel("memstore"),
 	}
 }
 
 func (s *downloaderService) Init() error {
+	go s.channel.Subscribe(func(data interface{}) {
+		entry, ok := data.(entry.Entry)
+		if !ok {
+			return
+		}
+
+		if err := s.memstore.Set(entry.ID(), entry); err != nil {
+			log.Println("Error inserting into memstore:", err.Error())
+			return
+		}
+	})
+
 	return nil
+}
+
+func (s *downloaderService) Close() error {
+	return s.channel.Close()
 }
 
 // TODO: call the app to spawn if not openned yet

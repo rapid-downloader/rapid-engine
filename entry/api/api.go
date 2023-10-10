@@ -13,17 +13,17 @@ const (
 )
 
 type entryService struct {
-	memstore entry.Store
+	channel api.Channel
 }
 
-func newService(memstore entry.Store) api.Service {
+func newService() api.Service {
 	return &entryService{
-		memstore: memstore,
+		channel: api.CreateChannel("memstore"),
 	}
 }
 
-func (s *entryService) Init() error {
-	return nil
+func (s *entryService) Close() error {
+	return s.channel.Close()
 }
 
 func (s *entryService) fetch(ctx *fiber.Ctx) error {
@@ -43,7 +43,7 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 		return response.Error(ctx, err.Error())
 	}
 
-	s.memstore.Set(entry.ID(), entry)
+	s.channel.Publish(entry)
 
 	return response.Success(ctx, entry)
 }
