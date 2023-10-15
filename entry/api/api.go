@@ -53,6 +53,7 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 		Size:          entry.Size(),
 		Type:          entry.Type(),
 		ChunkLen:      entry.ChunkLen(),
+		Provider:      entry.Downloader(),
 		Resumable:     entry.Resumable(),
 		Progress:      0,
 		ChunkProgress: chunkProgress,

@@ -22,7 +22,6 @@ type (
 
 	request struct {
 		Url         string   `json:"url"`
-		Client      string   `json:"client"`
 		Provider    string   `json:"provider"`
 		ContentType string   `json:"contentType"`
 		UserAgent   string   `json:"userAgent"`
