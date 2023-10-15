@@ -53,7 +53,7 @@ func (s *logService) logs(ctx *fiber.Ctx) error {
 	return response.Success(ctx, logs)
 }
 
-func (s *logService) Router() []api.Route {
+func (s *logService) Routes() []api.Route {
 	return []api.Route{
 		{
 			Path:    "/logs/:date",

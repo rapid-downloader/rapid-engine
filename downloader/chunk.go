@@ -25,15 +25,6 @@ type progress struct {
 	chunkSize  int64
 }
 
-type Progressbar struct {
-	ID         string `json:"id"`
-	Index      int    `json:"index"`
-	Downloaded int64  `json:"downloaded"`
-	Size       int64  `json:"size"`
-	Progress   int    `json:"progress"`
-	Done       bool   `json:"done"`
-}
-
 func (r *progress) Read(payload []byte) (n int, err error) {
 	n, err = r.reader.Read(payload)
 	if err != nil {
@@ -44,15 +35,13 @@ func (r *progress) Read(payload []byte) (n int, err error) {
 	r.progress = int(100 * r.downloaded / r.chunkSize)
 
 	if r.onprogress != nil {
-		data := Progressbar{
-			ID:         r.ID(),
-			Index:      r.index,
-			Downloaded: r.downloaded,
-			Size:       r.chunkSize,
-			Progress:   r.progress,
-		}
-
-		r.onprogress(data)
+		r.onprogress(
+			r.ID(),
+			r.index,
+			r.downloaded,
+			r.chunkSize,
+			r.progress,
+		)
 	}
 
 	return n, err
@@ -138,10 +127,19 @@ func (c *chunk) download(ctx context.Context) error {
 	}
 	defer dstFile.Close()
 
-	if _, err := io.Copy(dstFile, srcFile); err != nil {
+	n, err := io.Copy(dstFile, srcFile)
+	if err != nil {
 		log.Println("Error downloading chunk:", err.Error())
 		return err
 	}
+
+	c.onprogress(
+		c.entry.ID(),
+		c.index,
+		n,
+		c.size,
+		int(100*n/c.size),
+	)
 
 	elapsed := time.Since(start)
 	log.Println("Chunk", c.index, "downloaded in", elapsed.Seconds(), "s")

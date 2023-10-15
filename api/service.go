@@ -20,7 +20,7 @@ type (
 	}
 
 	Service interface {
-		Router() []Route
+		Routes() []Route
 	}
 
 	Route struct {
@@ -71,7 +71,7 @@ func (s *serviceRunner) Run() {
 		}
 
 		// create the service
-		for _, route := range service.Router() {
+		for _, route := range service.Routes() {
 			s.app.Add(route.Method, route.Path, route.Handler)
 		}
 	}
