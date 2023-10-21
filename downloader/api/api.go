@@ -90,6 +90,7 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 				"downloaded": data[2],
 				"size":       data[3],
 				"progress":   data[4],
+				"done":       false,
 			})
 		})
 	}
@@ -102,8 +103,12 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 	s.memstore.Delete(entry.ID())
 
 	channel.Publish(map[string]interface{}{
-		"id":   entry.ID(),
-		"done": true,
+		"id":         entry.ID(),
+		"index":      0,
+		"downloaded": entry.Size(),
+		"size":       entry.Size(),
+		"progress":   100,
+		"done":       true,
 	})
 
 	status := "Completed"
@@ -154,6 +159,7 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 				"downloaded": data[2],
 				"size":       data[3],
 				"progress":   data[4],
+				"done":       false,
 			})
 		})
 	}
@@ -165,8 +171,12 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 
 	s.memstore.Delete(entry.ID())
 	channel.Publish(map[string]interface{}{
-		"id":   entry.ID(),
-		"done": true,
+		"id":         entry.ID(),
+		"index":      0,
+		"downloaded": entry.Size(),
+		"size":       entry.Size(),
+		"progress":   100,
+		"done":       true,
 	})
 
 	status := "Completed"
@@ -217,6 +227,7 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 				"downloaded": data[2],
 				"size":       data[3],
 				"progress":   data[4],
+				"done":       false,
 			})
 		})
 	}
@@ -229,8 +240,12 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 	}
 
 	channel.Publish(map[string]interface{}{
-		"id":   entry.ID(),
-		"done": true,
+		"id":         entry.ID(),
+		"index":      0,
+		"downloaded": entry.Size(),
+		"size":       entry.Size(),
+		"progress":   100,
+		"done":       true,
 	})
 
 	status := "Completed"
