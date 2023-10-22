@@ -1,9 +1,7 @@
 package entry
 
 import (
-	"bytes"
 	"context"
-	"fmt"
 	"net/http"
 	"path/filepath"
 
@@ -92,11 +90,11 @@ func Fetch(url string, options ...Options) (Entry, error) {
 		option(opt)
 	}
 
-	log.Println("Fetching url...")
+	log.Println("fetching url...")
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Println("Error preparing request:", err.Error())
+		log.Println("error preparing request:", err.Error())
 		return nil, err
 	}
 
@@ -111,7 +109,7 @@ func Fetch(url string, options ...Options) (Entry, error) {
 	// retry fetch 3x if error
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Println("Error fetching url:", err.Error(), "Retrying....")
+		log.Println("error fetching url:", err.Error(), "Retrying....")
 		return nil, err
 	}
 
@@ -128,7 +126,7 @@ func Fetch(url string, options ...Options) (Entry, error) {
 
 	size := res.ContentLength
 	if size == -1 {
-		log.Println("Downloading with unknown size...")
+		log.Println("downloading with unknown size...")
 	}
 
 	downloadProvider := "default"
@@ -199,7 +197,7 @@ func (e *entry) Expired() bool {
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Println("Error fetching expired status:", err.Error())
+		log.Println("error fetching expired status:", err.Error())
 		return true
 	}
 
@@ -216,21 +214,6 @@ func (e *entry) Refresh() error {
 
 func (e *entry) Downloader() string {
 	return e.DownloadProvider_
-}
-
-func (e *entry) String() string {
-	var buffer bytes.Buffer
-
-	buffer.WriteString(fmt.Sprintf("ID: %v\n", e.Id))
-	buffer.WriteString(fmt.Sprintf("Name: %v\n", e.Name_))
-	buffer.WriteString(fmt.Sprintf("Location: %v\n", e.Location_))
-	buffer.WriteString(fmt.Sprintf("Size: %v\n", e.Size_))
-	buffer.WriteString(fmt.Sprintf("Filetype: %v\n", e.Filetype_))
-	buffer.WriteString(fmt.Sprintf("Resumable: %v\n", e.Resumable_))
-	buffer.WriteString(fmt.Sprintf("ChunkLen: %v\n", e.ChunkLen_))
-	buffer.WriteString(fmt.Sprintf("Expired: %v\n", e.Expired()))
-
-	return buffer.String()
 }
 
 func (e *entry) Request() *http.Request {

@@ -36,7 +36,7 @@ func New(provider string) Logger {
 
 	logger, ok := loggermap[provider]
 	if !ok {
-		log.Panicf("Provider %s is not implemented", provider)
+		log.Panicf("provider %s is not implemented", provider)
 		return nil
 	}
 

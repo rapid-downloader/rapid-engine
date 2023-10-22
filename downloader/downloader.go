@@ -49,7 +49,7 @@ func New(provider string, options ...Options) Downloader {
 
 	downloader, ok := downloadermap[provider]
 	if !ok {
-		log.Panicf("Provider %s is not implemented", provider)
+		log.Panicf("provider %s is not implemented", provider)
 		return nil
 	}
 
