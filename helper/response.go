@@ -1,12 +1,17 @@
 package helper
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"github.com/gofiber/fiber/v2"
+	"github.com/rapid-downloader/rapid/log"
+)
 
 func Error(ctx *fiber.Ctx, message string, code ...int) error {
 	statusCode := fiber.StatusBadRequest
 	if len(code) > 0 {
 		statusCode = code[0]
 	}
+
+	log.Println(message)
 
 	return ctx.Status(statusCode).
 		JSON(fiber.Map{

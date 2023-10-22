@@ -41,26 +41,21 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 
 	s.channel.Publish(entry)
 
-	chunkProgress := make([]int, entry.ChunkLen())
-	for i := range chunkProgress {
-		chunkProgress[i] = 0
-	}
-
 	toDownload := Download{
-		ID:            entry.ID(),
-		Name:          entry.Name(),
-		URL:           entry.URL(),
-		Size:          entry.Size(),
-		Type:          entry.Type(),
-		ChunkLen:      entry.ChunkLen(),
-		Provider:      entry.Downloader(),
-		Resumable:     entry.Resumable(),
-		Progress:      0,
-		ChunkProgress: chunkProgress,
-		TimeLeft:      time.Time{},
-		Speed:         0,
-		Status:        "Queued",
-		Date:          time.Now(),
+		ID:               entry.ID(),
+		Name:             entry.Name(),
+		URL:              entry.URL(),
+		Size:             entry.Size(),
+		Type:             entry.Type(),
+		ChunkLen:         entry.ChunkLen(),
+		Provider:         entry.Downloader(),
+		Resumable:        entry.Resumable(),
+		Progress:         0,
+		DownloadedChunks: make([]int64, entry.ChunkLen()),
+		TimeLeft:         0,
+		Speed:            0,
+		Status:           "Queued",
+		Date:             time.Now(),
 	}
 
 	if err := s.store.Create(entry.ID(), toDownload); err != nil {
@@ -89,6 +84,34 @@ func (s *entryService) getAllEntry(ctx *fiber.Ctx) error {
 	return response.Success(ctx, res)
 }
 
+func (s *entryService) updateEntry(ctx *fiber.Ctx) error {
+	id := ctx.Params("id")
+
+	var payload UpdateDownload
+	if err := ctx.BodyParser(&payload); err != nil {
+		return response.Error(ctx, err.Error())
+	}
+
+	if err := s.store.Update(id, payload); err != nil {
+		return response.Error(ctx, err.Error())
+	}
+
+	return response.Success(ctx)
+}
+
+func (s *entryService) updateAllEntry(ctx *fiber.Ctx) error {
+	var payload BatchUpdateDownload
+	if err := ctx.BodyParser(&payload); err != nil {
+		return response.Error(ctx, err.Error())
+	}
+
+	if err := s.store.BatchUpdate(payload.IDs, payload.Payload); err != nil {
+		return response.Error(ctx, err.Error())
+	}
+
+	return response.Success(ctx)
+}
+
 func (s *entryService) deleteEntry(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
@@ -115,6 +138,16 @@ func (s *entryService) Routes() []api.Route {
 			Path:    "/entries",
 			Method:  "GET",
 			Handler: s.getAllEntry,
+		},
+		{
+			Path:    "/entry/:id",
+			Method:  "PUT",
+			Handler: s.updateEntry,
+		},
+		{
+			Path:    "/entries",
+			Method:  "PUT",
+			Handler: s.updateAllEntry,
 		},
 		{
 			Path:    "/delete/entry/:id",

@@ -2,8 +2,10 @@ package api
 
 import (
 	"fmt"
-	"log"
+	logger "log"
 	"time"
+
+	"github.com/rapid-downloader/rapid/log"
 
 	"github.com/goccy/go-json"
 
@@ -40,7 +42,7 @@ func (s *downloaderService) Init() error {
 		}
 
 		if err := s.memstore.Set(entry.ID(), entry); err != nil {
-			log.Println("Error inserting into memstore:", err.Error())
+			log.Println("error inserting into memstore:", err.Error())
 			return
 		}
 	})
@@ -96,7 +98,7 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 	}
 
 	if err := dl.Download(entry); err != nil {
-		log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
+		log.Printf("error downloading %s: %s", entry.Name(), err.Error())
 		return
 	}
 
@@ -116,7 +118,7 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 		Status: &status,
 	})
 	if err != nil {
-		log.Println("Error updating download status:", err.Error())
+		log.Println(err.Error())
 	}
 }
 
@@ -165,7 +167,7 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 	}
 
 	if err := dl.Resume(entry); err != nil {
-		log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
+		log.Printf("error downloading %s: %s", entry.Name(), err.Error())
 		return
 	}
 
@@ -184,7 +186,7 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 		Status: &status,
 	})
 	if err != nil {
-		log.Println("Error updating download status:", err.Error())
+		log.Println(err.Error())
 	}
 }
 
@@ -235,7 +237,7 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 	defer s.memstore.Delete(entry.ID())
 
 	if err := dl.Restart(entry); err != nil {
-		log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
+		log.Printf("error restarting %s: %s", entry.Name(), err.Error())
 		return
 	}
 
@@ -253,7 +255,7 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 		Status: &status,
 	})
 	if err != nil {
-		log.Println("Error updating download status:", err.Error())
+		log.Println(err.Error())
 	}
 }
 
@@ -305,7 +307,7 @@ func (s *downloaderService) doStop(entry entry.Entry, ctx *fiber.Ctx) error {
 	)
 
 	if err := dl.Stop(entry); err != nil {
-		return response.Error(ctx, fmt.Sprint("Error stopping download:", err.Error()))
+		return response.Error(ctx, fmt.Sprint("error stopping download:", err.Error()))
 	}
 
 	return response.Success(ctx, nil)
@@ -321,7 +323,7 @@ func (s *downloaderService) progressBar(c *websocket.Conn) {
 		for {
 			t, _, err := c.ReadMessage()
 			if err != nil {
-				log.Println("Error reading message:", err)
+				logger.Println("error reading message:", err)
 				return
 			}
 
@@ -342,18 +344,18 @@ func (s *downloaderService) progressBar(c *websocket.Conn) {
 
 			payload, err := json.Marshal(data)
 			if err != nil {
-				log.Println("Error marshalling data:", err)
+				logger.Println("error marshalling data:", err)
 				break
 			}
 
 			c.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.WriteMessage(websocket.TextMessage, payload); err != nil {
-				log.Println("Error sending progress data:", err)
+				logger.Println("error sending progress data:", err)
 				return
 			}
 		case <-ping.C:
 			if err := c.WriteMessage(websocket.PingMessage, nil); err != nil {
-				log.Println("Error ping:", err)
+				logger.Println("error ping:", err)
 				return
 			}
 		}

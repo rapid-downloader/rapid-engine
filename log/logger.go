@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -47,6 +48,11 @@ func New(provider string) Logger {
 
 func Println(args ...interface{}) {
 	logging.Println(args...)
+}
+
+func Printf(format string, args ...interface{}) {
+	str := fmt.Sprintf(format, args...)
+	logging.Println(str)
 }
 
 func Panicln(args ...interface{}) {

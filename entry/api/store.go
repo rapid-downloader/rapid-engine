@@ -2,7 +2,9 @@ package api
 
 import (
 	"encoding/json"
-	"log"
+	"fmt"
+
+	"github.com/rapid-downloader/rapid/log"
 
 	"go.etcd.io/bbolt"
 )
@@ -13,6 +15,7 @@ type Store interface {
 	Create(id string, val Download) error
 	CreateBatch(id []string, entries []Download) error
 	Update(id string, val UpdateDownload) error
+	BatchUpdate(ids []string, val []UpdateDownload) error
 	Delete(id string) error
 	DeleteAll() error
 }
@@ -35,14 +38,12 @@ func (s *store) Get(id string) *Download {
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucket))
 		if err != nil {
-			log.Println("Error creating bucket on Get:", err.Error())
-			return err
+			return fmt.Errorf("error creating bucket on Get:%s", err.Error())
 		}
 
 		var val Download
 		if err := json.Unmarshal(bucket.Get([]byte(id)), &val); err != nil {
-			log.Println("Error unmarshalling entry:", err.Error())
-			return err
+			return fmt.Errorf("error unmarshalling entry:%s", err.Error())
 		}
 
 		val.ID = id
@@ -65,14 +66,13 @@ func (s *store) GetAll() []Download {
 	err := s.db.Batch(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucket))
 		if err != nil {
-			log.Println("Error creating bucket on GetAll:", err.Error())
-			return err
+			return fmt.Errorf("error creating bucket on GetAll:%s", err.Error())
 		}
 
 		return bucket.ForEach(func(k, v []byte) error {
 			var entry Download
 			if err := json.Unmarshal(v, &entry); err != nil {
-				log.Println("Error fetching from bucket on get all:", err.Error())
+				return fmt.Errorf("error fetching from bucket on get all:%s", err.Error())
 			}
 
 			entry.ID = string(k)
@@ -83,7 +83,7 @@ func (s *store) GetAll() []Download {
 	})
 
 	if err != nil {
-		log.Println("Error fetching entries from db:", err.Error())
+		log.Println("error fetching entries from db:", err.Error())
 		return nil
 	}
 
@@ -94,14 +94,12 @@ func (s *store) Create(id string, entry Download) error {
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucket))
 		if err != nil {
-			log.Println("Error creating bucket on SetBatch:", err.Error())
-			return err
+			return fmt.Errorf("error creating bucket on SetBatch:%s", err.Error())
 		}
 
 		val, err := json.Marshal(entry)
 		if err != nil {
-			log.Println("Error marshalling for put operation:", err.Error())
-			return err
+			return fmt.Errorf("error marshalling for put operation:%s", err.Error())
 		}
 
 		return bucket.Put([]byte(id), val)
@@ -112,19 +110,17 @@ func (s *store) CreateBatch(id []string, entries []Download) error {
 	return s.db.Batch(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucket))
 		if err != nil {
-			log.Println("Error creating bucket on SetBatch:", err.Error())
-			return err
+			return fmt.Errorf("error creating bucket on SetBatch:%s", err.Error())
 		}
 
 		for i, entry := range entries {
 			val, err := json.Marshal(entry)
 			if err != nil {
-				log.Println("Error marshalling for batch operation:", err.Error())
-				continue
+				return fmt.Errorf("error marshalling for batch operation:%s", err.Error())
 			}
 
 			if err := bucket.Put([]byte(id[i]), val); err != nil {
-				log.Println("Error on put set batch:", err.Error())
+				return fmt.Errorf("error on put set batch:%s", err.Error())
 			}
 		}
 
@@ -132,57 +128,76 @@ func (s *store) CreateBatch(id []string, entries []Download) error {
 	})
 }
 
+func (s *store) update(bucket *bbolt.Bucket, id string, toUpdate UpdateDownload) error {
+
+	var entry Download
+	res := bucket.Get([]byte(id))
+	if err := json.Unmarshal(res, &entry); err != nil {
+		return fmt.Errorf("error unmarshalling for update operation:%s", err.Error())
+	}
+
+	// Update properties only if they are non-nil in val
+	if toUpdate.URL != nil {
+		entry.URL = *toUpdate.URL
+	}
+	if toUpdate.Provider != nil {
+		entry.Provider = *toUpdate.Provider
+	}
+	if toUpdate.Resumable != nil {
+		entry.Resumable = *toUpdate.Resumable
+	}
+	if toUpdate.Progress != nil {
+		entry.Progress = *toUpdate.Progress
+	}
+	if toUpdate.Expired != nil {
+		entry.Expired = *toUpdate.Expired
+	}
+	if toUpdate.DownloadedChunks != nil {
+		entry.DownloadedChunks = toUpdate.DownloadedChunks
+	}
+	if toUpdate.TimeLeft != nil {
+		entry.TimeLeft = *toUpdate.TimeLeft
+	}
+	if toUpdate.Speed != nil {
+		entry.Speed = *toUpdate.Speed
+	}
+	if toUpdate.Status != nil {
+		entry.Status = *toUpdate.Status
+	}
+
+	val, err := json.Marshal(entry)
+	if err != nil {
+		return fmt.Errorf("error marshalling for update operation:%s", err.Error())
+	}
+
+	return bucket.Put([]byte(id), val)
+}
+
 func (s *store) Update(id string, val UpdateDownload) error {
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucket))
 		if err != nil {
-			log.Println("Error creating bucket on SetBatch:", err.Error())
-			return err
+			return fmt.Errorf("error creating bucket on SetBatch:%s", err.Error())
 		}
 
-		var entry Download
-		res := bucket.Get([]byte(id))
-		if err := json.Unmarshal(res, &entry); err != nil {
-			log.Println("Error unmarshalling for update operation:", err.Error())
-			return err
-		}
+		return s.update(bucket, id, val)
+	})
+}
 
-		// Update properties only if they are non-nil in val
-		if val.URL != nil {
-			entry.URL = *val.URL
-		}
-		if val.Provider != nil {
-			entry.Provider = *val.Provider
-		}
-		if val.Resumable != nil {
-			entry.Resumable = *val.Resumable
-		}
-		if val.Progress != nil {
-			entry.Progress = *val.Progress
-		}
-		if val.Expired != nil {
-			entry.Expired = *val.Expired
-		}
-		if val.ChunkProgress != nil {
-			entry.ChunkProgress = val.ChunkProgress
-		}
-		if val.TimeLeft != nil {
-			entry.TimeLeft = *val.TimeLeft
-		}
-		if val.Speed != nil {
-			entry.Speed = *val.Speed
-		}
-		if val.Status != nil {
-			entry.Status = *val.Status
-		}
-
-		val, err := json.Marshal(entry)
+func (s *store) BatchUpdate(ids []string, val []UpdateDownload) error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucket))
 		if err != nil {
-			log.Println("Error marshalling for update operation:", err.Error())
-			return err
+			return fmt.Errorf("error creating bucket on SetBatch:%s", err.Error())
 		}
 
-		return bucket.Put([]byte(id), val)
+		for i, id := range ids {
+			if err := s.update(bucket, id, val[i]); err != nil {
+				return fmt.Errorf("error updating entries on UpdateAll:%s", err.Error())
+			}
+		}
+
+		return nil
 	})
 }
 
@@ -190,8 +205,7 @@ func (s *store) Delete(id string) error {
 	return s.db.View(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucket))
 		if err != nil {
-			log.Println("Error creating bucket on Delete:", err.Error())
-			return err
+			return fmt.Errorf("error creating bucket on Delete:%s", err.Error())
 		}
 		return bucket.Delete([]byte(id))
 	})

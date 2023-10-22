@@ -29,33 +29,38 @@ type (
 	}
 
 	Download struct {
-		ID            string    `json:"id"`
-		Name          string    `json:"name"`
-		URL           string    `json:"url"`
-		Provider      string    `json:"provider"`
-		Size          int64     `json:"size"`
-		Type          string    `json:"type"`
-		ChunkLen      int       `json:"chunklen"`
-		Resumable     bool      `json:"resumable"`
-		Progress      int       `json:"progress"`
-		Expired       bool      `json:"expired"`
-		ChunkProgress []int     `json:"chunkProgress"`
-		TimeLeft      time.Time `json:"timeLeft"`
-		Speed         int64     `json:"speed"`
-		Status        string    `json:"status"`
-		Date          time.Time `json:"date"`
+		ID               string    `json:"id"`
+		Name             string    `json:"name"`
+		URL              string    `json:"url"`
+		Provider         string    `json:"provider"`
+		Size             int64     `json:"size"`
+		Type             string    `json:"type"`
+		ChunkLen         int       `json:"chunklen"`
+		Resumable        bool      `json:"resumable"`
+		Progress         int       `json:"progress"`
+		Expired          bool      `json:"expired"`
+		DownloadedChunks []int64   `json:"downloadedChunks"`
+		TimeLeft         int       `json:"timeLeft"`
+		Speed            float64   `json:"speed"`
+		Status           string    `json:"status"`
+		Date             time.Time `json:"date"`
+	}
+
+	BatchUpdateDownload struct {
+		IDs     []string         `json:"ids"`
+		Payload []UpdateDownload `json:"payload"`
 	}
 
 	UpdateDownload struct {
-		URL           *string    `json:"url"`
-		Provider      *string    `json:"provider"`
-		Resumable     *bool      `json:"resumable"`
-		Progress      *int       `json:"progress"`
-		Expired       *bool      `json:"expired"`
-		ChunkProgress []int      `json:"chunkProgress"`
-		TimeLeft      *time.Time `json:"timeLeft"`
-		Speed         *int64     `json:"speed"`
-		Status        *string    `json:"status"`
+		URL              *string  `json:"url"`
+		Provider         *string  `json:"provider"`
+		Resumable        *bool    `json:"resumable"`
+		Progress         *int     `json:"progress"`
+		Expired          *bool    `json:"expired"`
+		DownloadedChunks []int64  `json:"downloadedChunks"`
+		TimeLeft         *int     `json:"timeLeft"`
+		Speed            *float64 `json:"speed"`
+		Status           *string  `json:"status"`
 	}
 
 	queueRequest struct {
