@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/rapid-downloader/rapid/helper"
 	"github.com/rapid-downloader/rapid/log"
 	"github.com/rapid-downloader/rapid/setting"
 )
@@ -135,7 +136,7 @@ func Fetch(url string, options ...Options) (Entry, error) {
 	}
 
 	entry := &entry{
-		Id:                randID(10),
+		Id:                helper.ID(10),
 		Name_:             filename,
 		Location_:         location,
 		Filetype_:         filetype,
