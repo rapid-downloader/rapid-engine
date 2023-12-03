@@ -25,15 +25,6 @@ type progress struct {
 	chunkSize  int64
 }
 
-type Progressbar struct {
-	ID         string `json:"id"`
-	Index      int    `json:"index"`
-	Downloaded int64  `json:"downloaded"`
-	Size       int64  `json:"size"`
-	Progress   int    `json:"progress"`
-	Done       bool   `json:"done"`
-}
-
 func (r *progress) Read(payload []byte) (n int, err error) {
 	n, err = r.reader.Read(payload)
 	if err != nil {
@@ -44,15 +35,13 @@ func (r *progress) Read(payload []byte) (n int, err error) {
 	r.progress = int(100 * r.downloaded / r.chunkSize)
 
 	if r.onprogress != nil {
-		data := Progressbar{
-			ID:         r.ID(),
-			Index:      r.index,
-			Downloaded: r.downloaded,
-			Size:       r.chunkSize,
-			Progress:   r.progress,
-		}
-
-		r.onprogress(data)
+		r.onprogress(
+			r.ID(),
+			r.index,
+			r.downloaded,
+			r.chunkSize,
+			r.progress,
+		)
 	}
 
 	return n, err
@@ -126,25 +115,34 @@ func (c *chunk) download(ctx context.Context) error {
 
 	srcFile, err := c.getDownloadFile(ctx)
 	if err != nil {
-		log.Println("Error fetching chunk file:", err.Error())
+		log.Println("error fetching chunk file:", err.Error())
 		return err
 	}
 	defer srcFile.Close()
 
 	dstFile, err := c.getSaveFile()
 	if err != nil {
-		log.Println("Error creating temp file for chunk:", err.Error())
+		log.Println("error creating temp file for chunk:", err.Error())
 		return err
 	}
 	defer dstFile.Close()
 
-	if _, err := io.Copy(dstFile, srcFile); err != nil {
-		log.Println("Error downloading chunk:", err.Error())
+	n, err := io.Copy(dstFile, srcFile)
+	if err != nil {
+		log.Println("error downloading chunk:", err.Error())
 		return err
 	}
 
+	c.onprogress(
+		c.entry.ID(),
+		c.index,
+		n,
+		c.size,
+		int(100*n/c.size),
+	)
+
 	elapsed := time.Since(start)
-	log.Println("Chunk", c.index, "downloaded in", elapsed.Seconds(), "s")
+	log.Println("chunk", c.index, "downloaded in", elapsed.Seconds(), "s")
 
 	return nil
 }
@@ -161,7 +159,7 @@ func (c *chunk) OnError(ctx context.Context, err error) {
 	var e error
 	for i := 0; i < c.setting.MaxRetry; i++ {
 		c.wg.Add(1)
-		log.Println("Error downloading file:", err.Error(), ". Retrying...")
+		log.Println("error downloading file:", err.Error(), ". Retrying...")
 
 		if c.entry.Resumable() {
 			c.start += resumePosition(c.path)
@@ -172,7 +170,7 @@ func (c *chunk) OnError(ctx context.Context, err error) {
 		}
 	}
 
-	log.Println("Failed downloading file:", err.Error())
+	log.Println("error downloading file:", err.Error())
 }
 
 func (c *chunk) onProgress(onprogress OnProgress) {
@@ -186,12 +184,12 @@ func (c *chunk) getDownloadFile(ctx context.Context) (io.ReadCloser, error) {
 		bytesRange := fmt.Sprintf("bytes=%d-%d", c.start, c.end)
 		req.Header.Add("Range", bytesRange)
 
-		log.Println("Downloading chunk", c.index, "from", c.start, "to", c.end, fmt.Sprintf("(~%d MB)", (c.end-c.start)/(1024*1024)))
+		log.Println("downloading chunk", c.index, "from", c.start, "to", c.end, fmt.Sprintf("(~%d MB)", (c.end-c.start)/(1024*1024)))
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Println("Error fething chunk body:", err.Error())
+		log.Println("error fething chunk body:", err.Error())
 		return nil, err
 	}
 
@@ -212,7 +210,7 @@ func (c *chunk) getSaveFile() (io.WriteCloser, error) {
 	tmpFilename := filepath.Join(c.setting.DownloadLocation, fmt.Sprintf("%s-%d", c.entry.ID(), c.index))
 	file, err := os.OpenFile(tmpFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Println("Error creating or appending file:", err.Error())
+		log.Println("error creating or appending file:", err.Error())
 		return nil, err
 	}
 

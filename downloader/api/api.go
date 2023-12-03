@@ -2,16 +2,20 @@ package api
 
 import (
 	"fmt"
-	"log"
+	logger "log"
 	"time"
+
+	"github.com/rapid-downloader/rapid/log"
 
 	"github.com/goccy/go-json"
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rapid-downloader/rapid/api"
+	"github.com/rapid-downloader/rapid/db"
 	"github.com/rapid-downloader/rapid/downloader"
 	"github.com/rapid-downloader/rapid/entry"
+	entryApi "github.com/rapid-downloader/rapid/entry/api"
 	response "github.com/rapid-downloader/rapid/helper"
 	"github.com/rapid-downloader/rapid/setting"
 )
@@ -19,12 +23,14 @@ import (
 type downloaderService struct {
 	memstore entry.Store
 	channel  api.Channel
+	store    entryApi.Store
 }
 
 func newService() api.Service {
 	return &downloaderService{
 		memstore: entry.Memstore(),
 		channel:  api.CreateChannel("memstore"),
+		store:    entryApi.NewStore("download", db.DB()),
 	}
 }
 
@@ -36,16 +42,12 @@ func (s *downloaderService) Init() error {
 		}
 
 		if err := s.memstore.Set(entry.ID(), entry); err != nil {
-			log.Println("Error inserting into memstore:", err.Error())
+			log.Println("error inserting into memstore:", err.Error())
 			return
 		}
 	})
 
 	return nil
-}
-
-func (s *downloaderService) Close() error {
-	return s.channel.Close()
 }
 
 // TODO: call the app to spawn if not openned yet
@@ -60,6 +62,15 @@ func (s *downloaderService) download(ctx *fiber.Ctx) error {
 		return response.NotFound(ctx)
 	}
 
+	status := "Downloading"
+	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
+		Status: &status,
+	})
+
+	if err != nil {
+		return response.Error(ctx, err.Error(), fiber.StatusBadGateway)
+	}
+
 	go s.doDownload(entry, client)
 
 	return response.Success(ctx, nil)
@@ -67,7 +78,6 @@ func (s *downloaderService) download(ctx *fiber.Ctx) error {
 
 func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 	channel := api.CreateChannel(client)
-
 	setting := setting.Get()
 
 	dl := downloader.New(entry.Downloader(),
@@ -76,21 +86,40 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 
 	if watcher, ok := dl.(downloader.Watcher); ok {
 		watcher.Watch(func(data ...interface{}) {
-			channel.Publish(data[0])
+			channel.Publish(map[string]interface{}{
+				"id":         data[0],
+				"index":      data[1],
+				"downloaded": data[2],
+				"size":       data[3],
+				"progress":   data[4],
+				"done":       false,
+			})
 		})
 	}
 
 	if err := dl.Download(entry); err != nil {
-		log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
+		log.Printf("error downloading %s: %s", entry.Name(), err.Error())
 		return
 	}
 
 	s.memstore.Delete(entry.ID())
 
-	channel.Publish(downloader.Progressbar{
-		ID:   entry.ID(),
-		Done: true,
+	channel.Publish(map[string]interface{}{
+		"id":         entry.ID(),
+		"index":      0,
+		"downloaded": entry.Size(),
+		"size":       entry.Size(),
+		"progress":   100,
+		"done":       true,
 	})
+
+	status := "Completed"
+	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
+		Status: &status,
+	})
+	if err != nil {
+		log.Println(err.Error())
+	}
 }
 
 func (s *downloaderService) resume(ctx *fiber.Ctx) error {
@@ -102,6 +131,15 @@ func (s *downloaderService) resume(ctx *fiber.Ctx) error {
 		return response.NotFound(ctx)
 	}
 
+	status := "Downloading"
+	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
+		Status: &status,
+	})
+
+	if err != nil {
+		return response.Error(ctx, err.Error(), fiber.StatusBadGateway)
+	}
+
 	go s.doResume(entry, client)
 
 	return response.Success(ctx, nil)
@@ -109,7 +147,6 @@ func (s *downloaderService) resume(ctx *fiber.Ctx) error {
 
 func (s *downloaderService) doResume(entry entry.Entry, client string) {
 	channel := api.CreateChannel(client)
-
 	setting := setting.Get()
 
 	dl := downloader.New(entry.Downloader(),
@@ -118,20 +155,39 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 
 	if watcher, ok := dl.(downloader.Watcher); ok {
 		watcher.Watch(func(data ...interface{}) {
-			channel.Publish(data[0])
+			channel.Publish(map[string]interface{}{
+				"id":         data[0],
+				"index":      data[1],
+				"downloaded": data[2],
+				"size":       data[3],
+				"progress":   data[4],
+				"done":       false,
+			})
 		})
 	}
 
 	if err := dl.Resume(entry); err != nil {
-		log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
+		log.Printf("error downloading %s: %s", entry.Name(), err.Error())
 		return
 	}
 
 	s.memstore.Delete(entry.ID())
-	channel.Publish(downloader.Progressbar{
-		ID:   entry.ID(),
-		Done: true,
+	channel.Publish(map[string]interface{}{
+		"id":         entry.ID(),
+		"index":      0,
+		"downloaded": entry.Size(),
+		"size":       entry.Size(),
+		"progress":   100,
+		"done":       true,
 	})
+
+	status := "Completed"
+	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
+		Status: &status,
+	})
+	if err != nil {
+		log.Println(err.Error())
+	}
 }
 
 func (s *downloaderService) restart(ctx *fiber.Ctx) error {
@@ -143,6 +199,15 @@ func (s *downloaderService) restart(ctx *fiber.Ctx) error {
 		return response.NotFound(ctx)
 	}
 
+	status := "Downloading"
+	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
+		Status: &status,
+	})
+
+	if err != nil {
+		return response.Error(ctx, err.Error(), fiber.StatusBadGateway)
+	}
+
 	go s.doRestart(entry, client)
 
 	return response.Success(ctx, nil)
@@ -150,7 +215,6 @@ func (s *downloaderService) restart(ctx *fiber.Ctx) error {
 
 func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 	channel := api.CreateChannel(client)
-
 	setting := setting.Get()
 
 	dl := downloader.New(entry.Downloader(),
@@ -159,21 +223,40 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 
 	if watcher, ok := dl.(downloader.Watcher); ok {
 		watcher.Watch(func(data ...interface{}) {
-			channel.Publish(data[0])
+			channel.Publish(map[string]interface{}{
+				"id":         data[0],
+				"index":      data[1],
+				"downloaded": data[2],
+				"size":       data[3],
+				"progress":   data[4],
+				"done":       false,
+			})
 		})
 	}
 
 	defer s.memstore.Delete(entry.ID())
 
 	if err := dl.Restart(entry); err != nil {
-		log.Printf("Error downloading %s: %s", entry.Name(), err.Error())
+		log.Printf("error restarting %s: %s", entry.Name(), err.Error())
 		return
 	}
 
-	channel.Publish(downloader.Progressbar{
-		ID:   entry.ID(),
-		Done: true,
+	channel.Publish(map[string]interface{}{
+		"id":         entry.ID(),
+		"index":      0,
+		"downloaded": entry.Size(),
+		"size":       entry.Size(),
+		"progress":   100,
+		"done":       true,
 	})
+
+	status := "Completed"
+	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
+		Status: &status,
+	})
+	if err != nil {
+		log.Println(err.Error())
+	}
 }
 
 func (s *downloaderService) pause(ctx *fiber.Ctx) error {
@@ -181,6 +264,15 @@ func (s *downloaderService) pause(ctx *fiber.Ctx) error {
 	entry := s.memstore.Get(id)
 	if entry == nil {
 		return response.NotFound(ctx)
+	}
+
+	status := "Paused"
+	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
+		Status: &status,
+	})
+
+	if err != nil {
+		return response.Error(ctx, err.Error(), fiber.StatusBadGateway)
 	}
 
 	return s.doStop(entry, ctx)
@@ -195,6 +287,15 @@ func (s *downloaderService) stop(ctx *fiber.Ctx) error {
 
 	s.memstore.Delete(entry.ID())
 
+	status := "Stoped"
+	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
+		Status: &status,
+	})
+
+	if err != nil {
+		return response.Error(ctx, err.Error(), fiber.StatusBadGateway)
+	}
+
 	return s.doStop(entry, ctx)
 }
 
@@ -206,7 +307,7 @@ func (s *downloaderService) doStop(entry entry.Entry, ctx *fiber.Ctx) error {
 	)
 
 	if err := dl.Stop(entry); err != nil {
-		return response.Error(ctx, fmt.Sprint("Error stopping download:", err.Error()))
+		return response.Error(ctx, fmt.Sprint("error stopping download:", err.Error()))
 	}
 
 	return response.Success(ctx, nil)
@@ -222,7 +323,7 @@ func (s *downloaderService) progressBar(c *websocket.Conn) {
 		for {
 			t, _, err := c.ReadMessage()
 			if err != nil {
-				log.Println("Error reading message:", err)
+				logger.Println("error reading message:", err)
 				return
 			}
 
@@ -241,29 +342,27 @@ func (s *downloaderService) progressBar(c *websocket.Conn) {
 				return
 			}
 
-			progressBar := data.(downloader.Progressbar)
-
-			payload, err := json.Marshal(progressBar)
+			payload, err := json.Marshal(data)
 			if err != nil {
-				log.Println("Error marshalling data:", err)
+				logger.Println("error marshalling data:", err)
 				break
 			}
 
 			c.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.WriteMessage(websocket.TextMessage, payload); err != nil {
-				log.Println("Error sending progress data:", err)
+				logger.Println("error sending progress data:", err)
 				return
 			}
 		case <-ping.C:
 			if err := c.WriteMessage(websocket.PingMessage, nil); err != nil {
-				log.Println("Error ping:", err)
+				logger.Println("error ping:", err)
 				return
 			}
 		}
 	}
 }
 
-func (s *downloaderService) Router() []api.Route {
+func (s *downloaderService) Routes() []api.Route {
 	return []api.Route{
 		{
 			Path:    "/:client/download/:id",

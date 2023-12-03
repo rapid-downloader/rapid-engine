@@ -12,6 +12,8 @@ import (
 	"github.com/rapid-downloader/rapid/db"
 	_ "github.com/rapid-downloader/rapid/downloader/api"
 	_ "github.com/rapid-downloader/rapid/entry/api"
+	"github.com/rapid-downloader/rapid/env"
+	_ "github.com/rapid-downloader/rapid/env"
 	_ "github.com/rapid-downloader/rapid/log/api"
 )
 
@@ -40,7 +42,9 @@ func main() {
 	api.Run()
 	api.Shutdown()
 
-	if err := app.Listen(":9999"); err != nil {
+	port := env.Get("API_PORT").String(":9999")
+
+	if err := app.Listen(port); err != nil {
 		log.Fatal(err)
 	}
 }

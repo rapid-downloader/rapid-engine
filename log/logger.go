@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
@@ -35,7 +36,7 @@ func New(provider string) Logger {
 
 	logger, ok := loggermap[provider]
 	if !ok {
-		log.Panicf("Provider %s is not implemented", provider)
+		log.Panicf("provider %s is not implemented", provider)
 		return nil
 	}
 
@@ -47,6 +48,11 @@ func New(provider string) Logger {
 
 func Println(args ...interface{}) {
 	logging.Println(args...)
+}
+
+func Printf(format string, args ...interface{}) {
+	str := fmt.Sprintf(format, args...)
+	logging.Println(str)
 }
 
 func Panicln(args ...interface{}) {

@@ -50,14 +50,14 @@ func (l *fsLogger) println(args ...interface{}) string {
 
 	file, err := os.OpenFile(l.path, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	if err != nil {
-		log.Fatal("Error creating or opening file log:", err.Error())
+		log.Fatal("error creating or opening file log:", err.Error())
 	}
 
 	defer file.Close()
 
 	msg := formatMessage(args...)
 	if _, err := file.WriteString(msg); err != nil {
-		log.Println("Error writing into log file:", err.Error())
+		log.Println("error writing into log file:", err.Error())
 	}
 
 	return msg
