@@ -5,39 +5,33 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/goccy/go-json"
 
-	"github.com/gorilla/websocket"
+	"github.com/rapid-downloader/rapid/client/websocket"
 	"github.com/rapid-downloader/rapid/env"
 	"github.com/rapid-downloader/rapid/helper"
-	"github.com/rapid-downloader/rapid/log"
 )
 
 type rapidClient struct {
 	id     string
 	url    string
 	wsUrl  string
-	ws     *websocket.Conn
+	ws     websocket.Websocket
 	ctx    context.Context
 	cancel context.CancelFunc
 }
 
 func New(ctx context.Context, id string) (Rapid, error) {
-
 	host := env.Get("API_HOST").String("localhost")
 	port := env.Get("API_PORT").String(":9999")
 
 	url := fmt.Sprintf("http://%s%s", host, port)
 	wsUrl := fmt.Sprintf("ws://%s%s/ws/%s", host, port, id)
 
-	ws, res, err := websocket.DefaultDialer.DialContext(ctx, wsUrl, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error dialing websocket: %v. Status code %d", err, res.StatusCode)
-	}
-
 	ctx, cancel := context.WithCancel(ctx)
+	ws := websocket.Connect(ctx, wsUrl)
+
 	return &rapidClient{
 		id:     id,
 		url:    url,
@@ -46,68 +40,19 @@ func New(ctx context.Context, id string) (Rapid, error) {
 		cancel: cancel,
 		ws:     ws,
 	}, nil
+
 }
 
 func (r *rapidClient) Listen(progressbar OnProgress) {
-	onError := make(chan bool)
-
-	go func() {
-		for {
-			select {
-			case <-onError:
-				return
-			default:
-				_, message, err := r.ws.ReadMessage()
-				if err != nil {
-					progressbar(Progress{}, err)
-					return
-				}
-
-				var progress Progress
-				if err := json.Unmarshal(message, &progress); err != nil {
-					fmt.Println("Error unmarshalling message:", err)
-					return
-				}
-
-				progressbar(progress, nil)
-			}
-		}
-	}()
-
-	ping := time.NewTicker(time.Second)
-
-	go func() {
-		for {
-			select {
-			case <-ping.C:
-				if err := r.ws.WriteMessage(websocket.PingMessage, nil); err != nil {
-					onError <- true
-					progressbar(Progress{}, err)
-					return
-				}
-			case <-r.ctx.Done():
-				return
-			}
-		}
-	}()
-
-	for {
-		select {
-		case <-onError:
-			r.closeConn()
-			return
-		case <-r.ctx.Done():
-			r.closeConn()
+	r.ws.Listen(func(msg []byte) {
+		var progress Progress
+		if err := json.Unmarshal(msg, &progress); err != nil {
+			progressbar(Progress{}, err)
 			return
 		}
-	}
-}
 
-func (r *rapidClient) closeConn() {
-	if err := r.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil {
-		log.Println("error sending close signal to server:", err)
-		return
-	}
+		progressbar(progress, nil)
+	})
 }
 
 func (r *rapidClient) Fetch(request Request) (*Download, error) {
@@ -208,5 +153,9 @@ func (r *rapidClient) stop(t string, id string) error {
 
 func (r *rapidClient) Close() error {
 	r.cancel()
+	if closer, ok := r.ws.(websocket.WebsocketCloser); ok {
+		closer.Close()
+	}
+
 	return nil
 }

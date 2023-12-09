@@ -14,12 +14,12 @@ type Cookie struct {
 }
 
 type Request struct {
-	Url         string   `json:"url"`
-	Client      string   `json:"client"`
-	Provider    string   `json:"provider"`
-	ContentType string   `json:"contentType"`
-	UserAgent   string   `json:"userAgent"`
-	Cookies     []Cookie `json:"cookies"`
+	Url         string    `json:"url"`
+	Provider    string    `json:"provider"`
+	Client      *string   `json:"client"`
+	ContentType *string   `json:"contentType"`
+	UserAgent   *string   `json:"userAgent"`
+	Cookies     *[]Cookie `json:"cookies"`
 }
 
 type Download struct {
