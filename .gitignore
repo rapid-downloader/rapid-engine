@@ -1,0 +1,5 @@
+gui/build/bin
+gui/frontend/node_modules
+gui/frontend/dist
+
+cli/build
