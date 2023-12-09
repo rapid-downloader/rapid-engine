@@ -58,8 +58,13 @@ func download(ctx context.Context, rapid client.Rapid) *cobra.Command {
 				Provider: provider,
 			}
 
-			result, err := rapid.Download(request)
+			result, err := rapid.Fetch(request)
 			if err != nil {
+				log.Fatal(err)
+				return
+			}
+
+			if err := rapid.Download(result.ID); err != nil {
 				log.Fatal(err)
 				return
 			}

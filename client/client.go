@@ -57,7 +57,8 @@ type Rapid interface {
 	// and the caller should return the error and end the callback
 	Listen(progress OnProgress)
 
-	Download(req Request) (*Download, error)
+	Fetch(req Request) (*Download, error)
+	Download(id string) error
 	Resume(id string) error
 	Restart(id string) error
 	Stop(id string) error

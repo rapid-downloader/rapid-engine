@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/rapid-downloader/rapid/env"
 	"github.com/rapid-downloader/rapid/helper"
+	"github.com/rapid-downloader/rapid/log"
 )
 
 type rapidClient struct {
@@ -104,12 +105,12 @@ func (r *rapidClient) Listen(progressbar OnProgress) {
 
 func (r *rapidClient) closeConn() {
 	if err := r.ws.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil {
-		fmt.Println("Error sending close signal to server:", err)
+		log.Println("error sending close signal to server:", err)
 		return
 	}
 }
 
-func (r *rapidClient) Download(request Request) (*Download, error) {
+func (r *rapidClient) Fetch(request Request) (*Download, error) {
 	fetch := fmt.Sprintf("%s/fetch", r.url)
 
 	payload, err := json.Marshal(request)
@@ -130,28 +131,31 @@ func (r *rapidClient) Download(request Request) (*Download, error) {
 	}
 
 	defer res.Body.Close()
-
 	var result Download
 	// TODO: check if this is working or not
 	if err := helper.UnmarshalBody(res, &result); err != nil {
 		return nil, fmt.Errorf("error unmarshalling buffer: %s", err)
 	}
 
-	download := fmt.Sprintf("%s/%s/download/%s", r.url, r.id, result.ID)
-	req, err = http.NewRequestWithContext(r.ctx, "GET", download, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error preparing download request: %s", err.Error())
-	}
-
-	res, err = http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("error creating download request: %s", err)
-
-	}
-
-	res.Body.Close()
-
 	return &result, nil
+}
+
+func (r *rapidClient) Download(id string) error {
+	download := fmt.Sprintf("%s/%s/download/%s", r.url, r.id, id)
+	req, err := http.NewRequestWithContext(r.ctx, "GET", download, nil)
+	if err != nil {
+		return fmt.Errorf("error preparing download request: %s", err.Error())
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error creating download request: %s", err)
+
+	}
+
+	defer res.Body.Close()
+
+	return nil
 }
 
 func (r *rapidClient) Resume(id string) error {
