@@ -58,10 +58,10 @@ type Rapid interface {
 	Listen(progress OnProgress)
 
 	Download(req Request) (*Download, error)
-	Resume(id string) (*Download, error)
-	Restart(id string) (*Download, error)
+	Resume(id string) error
+	Restart(id string) error
 	Stop(id string) error
-	Delete(id string) error
+	Pause(id string) error
 }
 
 type RapidCloser interface {

@@ -14,13 +14,6 @@ import (
 	"github.com/rapid-downloader/rapid/helper"
 )
 
-type entry struct {
-	Id       string `json:"id"`
-	Name     string `json:"name"`
-	Size     int64  `json:"size"`
-	ChunkLen int    `json:"chunklen"`
-}
-
 type rapidClient struct {
 	id     string
 	url    string
@@ -161,33 +154,52 @@ func (r *rapidClient) Download(request Request) (*Download, error) {
 	return &result, nil
 }
 
-func (r *rapidClient) Resume(id string) (*Download, error) {
-	return nil, nil
+func (r *rapidClient) Resume(id string) error {
+	return r.docontinue("resume", id)
 }
 
-func (r *rapidClient) Restart(id string) (*Download, error) {
-	return nil, nil
+func (r *rapidClient) Restart(id string) error {
+	return r.docontinue("restart", id)
 }
 
-func (r *rapidClient) Stop(id string) error {
-	stop := fmt.Sprintf("%s/stop/%s", r.url, id)
+func (r *rapidClient) docontinue(t, id string) error {
+	resume := fmt.Sprintf("%s/%s/%s/%s", r.url, r.id, t, id)
 
-	req, err := http.NewRequest("PUT", stop, nil)
+	req, err := http.NewRequest("PUT", resume, nil)
 	if err != nil {
-		return fmt.Errorf("error preparing stop request: %s", err)
+		return fmt.Errorf("error preparing %s request: %s", t, err)
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("error stopping download: %s", err)
+		return fmt.Errorf("error %sing download: %s", t, err)
 	}
 
-	res.Body.Close()
-	return nil
+	return res.Body.Close()
 }
 
-func (r *rapidClient) Delete(id string) error {
-	return nil
+func (r *rapidClient) Stop(id string) error {
+	return r.stop("stop", id)
+}
+
+func (r *rapidClient) Pause(id string) error {
+	return r.stop("pause", id)
+}
+
+func (r *rapidClient) stop(t string, id string) error {
+	stop := fmt.Sprintf("%s/%s/%s", r.url, t, id)
+
+	req, err := http.NewRequest("PUT", stop, nil)
+	if err != nil {
+		return fmt.Errorf("error preparing %s request: %s", t, err)
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error %sing download: %s", t, err)
+	}
+
+	return res.Body.Close()
 }
 
 func (r *rapidClient) Close() error {
