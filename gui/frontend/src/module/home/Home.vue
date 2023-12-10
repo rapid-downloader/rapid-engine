@@ -2,16 +2,16 @@
 import { Button } from '@/components/ui/button'
 import Header from '@/components/Header.vue';
 import DownloadList from './components/DownloadList.vue';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, watch, onUnmounted, ref } from 'vue';
 import { Download } from './types';
 import XTooltip from '@/components/ui/tooltip/XTooltip.vue';
 import Filter from './components/Filter.vue';
 import Entries from './api'
 import XDialog from '@/components/ui/dialog/XDialog.vue';
 import DownloadDialog from '../download/components/DownloadDialog.vue';
-import { Websocket } from '@/composable'
-import { Progress } from '@/components/ui/progress';
 import { useNow, useTimeout } from '@vueuse/core';
+//@ts-ignore
+import { EventsOn } from '@/../wailsjs/runtime/runtime'
 
 const types = [
     { value: 'Document', label: 'Document' },
@@ -33,66 +33,20 @@ const dlentries = ref<Record<string, Download>>({})
 
 const entries = Entries()
 
-interface Progress {
-    id: string
-    index: number
-    downloaded: number
-    size: number
-    progress: number
-    done: boolean
+async function init() {
+    dlentries.value = await entries.all()
 }
 
-const socket = Websocket()
-const now = useNow()
-const { ready, start } = useTimeout(1000, { controls: true })
-
-socket.connect()   
-
-socket.onmessage(async (data: Progress) => {
-    dlentries.value[data.id].downloadedChunks[data.index] = data.downloaded
-    dlentries.value[data.id].status = 'Downloading'
-
-    const downloadedTotal = dlentries.value[data.id]
-        .downloadedChunks.reduce((total, chunk) => total + chunk)
-    
-    // calculate the total downloaded percentage
-    const size = dlentries.value[data.id].size
-    dlentries.value[data.id].progress = (downloadedTotal / size) * 100
-
-    // refresh calculation every second
-    if (ready.value) {
-        // calculcate the download speed
-        const elapsedSecond = new Date(
-                now.value.getTime() - new Date(dlentries.value[data.id].date).getTime()
-            ).getTime() / 1000
-
-        const speed = downloadedTotal / elapsedSecond
-        dlentries.value[data.id].speed = speed
-
-        // calculate time left
-        const remainingSize = size - downloadedTotal
-        dlentries.value[data.id].timeLeft = remainingSize / speed
-        
-        start()
-    }
-
-    if (data.done) {
-        dlentries.value[data.id].status = 'Completed'
-        dlentries.value[data.id].timeLeft = 0
-        dlentries.value[data.id].progress = 100
-
-        await entries.update(dlentries.value[data.id])
-    }
-})
-
-onMounted(async () => {
-    dlentries.value = await entries.all()
-})
+init()
 
 onUnmounted(async () => {
     await entries.updateAll(dlentries.value)
 })
 
+async function fetched(result: Download) {
+    dlentries.value[result.id] = result
+    await entries.update(result)
+}
 
 const filteredtype = ref<string[]>([])
 const filteredstatus = ref<string[]>([])
@@ -114,6 +68,63 @@ const items = computed(() => {
     return filtered
 })
 
+interface Progress {
+    ID: string
+    Index: number
+    Downloaded: number
+    Size: number
+    Progress: number
+    Done: boolean
+}
+
+const now = useNow()
+const { ready, start } = useTimeout(1000, { controls: true })
+
+async function update(progress: Progress) {
+    if (dlentries.value[progress.ID].downloadedChunks === undefined) {
+        dlentries.value[progress.ID].downloadedChunks = new Array<number>()
+    }
+
+    dlentries.value[progress.ID].downloadedChunks[progress.Index] = progress.Downloaded
+    dlentries.value[progress.ID].status = 'Downloading'
+
+    const downloadedTotal = dlentries.value[progress.ID]
+        .downloadedChunks.reduce((total, chunk) => total + chunk)
+    
+    // calculate the total downloaded percentage
+    const size = dlentries.value[progress.ID].size
+    dlentries.value[progress.ID].progress = (downloadedTotal / size) * 100
+
+    // refresh calculation every second
+    if (ready.value) {
+        // calculcate the download speed
+        const elapsedSecond = new Date(
+                now.value.getTime() - new Date(dlentries.value[progress.ID].date).getTime()
+            ).getTime() / 1000
+
+        const speed = downloadedTotal / elapsedSecond
+        dlentries.value[progress.ID].speed = speed
+
+        // calculate time left
+        const remainingSize = size - downloadedTotal
+        dlentries.value[progress.ID].timeLeft = remainingSize / speed
+        
+        start()
+    }
+
+    if (progress.Done) {
+        dlentries.value[progress.ID].status = 'Completed'
+        dlentries.value[progress.ID].timeLeft = 0
+        dlentries.value[progress.ID].progress = 100
+
+        await entries.update(dlentries.value[progress.ID])
+    }
+}
+
+EventsOn('progress', async (...event: any) => {
+    update(event[0] as Progress)
+})
+
 </script>
 
 <template>
@@ -128,7 +139,7 @@ const items = computed(() => {
                     </template>
 
                     <template v-slot:content>
-                        <download-dialog @fetched="res => dlentries[res.id] = res" /> 
+                        <download-dialog @fetched="fetched" /> 
                     </template>
                 </x-dialog>
             </x-tooltip>

@@ -8,6 +8,7 @@ import { useVuelidate } from '@vuelidate/core'
 import useDownloader from '../api'
 import { Download } from '@/module/home/types';
 import { DialogClose } from 'radix-vue';
+import { client } from 'wailsjs/go/models';
 
 const emits = defineEmits<{
     (e: 'fetched', entry: Download): void
@@ -24,7 +25,7 @@ const rules = {
     }
 }
 
-const downloader = useDownloader()
+const downloader = useDownloader('http')
 
 enum State {
     Init,
@@ -48,7 +49,7 @@ async function fetch(e: Event) {
     result.value = await downloader.fetch({
         provider: "default",
         url: form.url
-    })
+    } as client.Request)
 
     state.value = State.Fetched
 }
@@ -63,6 +64,7 @@ async function download(e: Event) {
     
     if (result.value) {
         await downloader.download(result.value.id)
+        console.log(result.value);
         emits('fetched', result.value)
     }
 }

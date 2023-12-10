@@ -1,13 +1,19 @@
 import { Http } from "@/composable"
 import { Download } from "../home/types"
-import { Fetch } from "./types"
 import { isAxiosError } from "axios"
+import { client } from '@/../wailsjs/go/models'
+import { Fetch, Download as doDownload } from '@/../wailsjs/go/main/App'
 
-export default function Downloader() {
+export interface Downloader {
+    fetch(req: client.Request): Promise<Download | undefined>
+    download(id: string): Promise<boolean>
+}
+
+export function HttpDownloader(): Downloader {
 
     const http = Http()
 
-    async function fetch(req: Fetch): Promise<Download | undefined> {
+    async function fetch(req: client.Request): Promise<Download | undefined> {
         try {
             const res = await http.post<Download>('/fetch', req)
             if (res.status === 200) {
@@ -38,4 +44,29 @@ export default function Downloader() {
     }
 
     return { fetch, download }
+}
+
+export function BindingDownloader(): Downloader {
+
+    async function fetch(req: client.Request): Promise<Download | undefined> {
+        try {
+            return await Fetch(req)
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+
+    async function download(id: string): Promise<boolean> {
+        return true
+    }
+
+    return {
+        fetch,
+        download
+    }
+}
+
+export default function useDownloader(provider: 'http' | 'binding'): Downloader {
+    return provider === 'http' ? HttpDownloader() : BindingDownloader()
 }

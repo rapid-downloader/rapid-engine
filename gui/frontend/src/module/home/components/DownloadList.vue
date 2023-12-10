@@ -16,7 +16,6 @@ import {
 } from '@/components/ui/table'
 import { computed, ref } from 'vue';
 import { useRouteQuery } from '@vueuse/router';
-import { useNow } from '@vueuse/core';
 
 const props = defineProps<{
     items: Record<string, Download>,
@@ -76,7 +75,7 @@ const items = computed(() => {
                             <i-radix-icons-caret-sort />
                         </div>
                     </table-head>
-                    <table-head @click="sort('size')" class="cursor-pointer w-[10%]">
+                    <table-head @click="sort('size')" class="cursor-pointer min-w-[7rem]">
                         <div class="flex justify-between items-center">
                             <p>Size</p>
                             <i-radix-icons-caret-sort />
@@ -85,16 +84,16 @@ const items = computed(() => {
                     <table-head class="w-[8%]">
                         Progress
                     </table-head>
-                    <table-head class="w-[8%]">
+                    <table-head class="min-w-[5rem]">
                         Time Left
                     </table-head>
-                    <table-head class="w-[15%] lg:w-[10%]">
+                    <table-head class="min-w-[7rem] lg:w-[10%]">
                         Speed
                     </table-head>
                     <table-head class="w-[10%]">
                         Status
                     </table-head>
-                    <table-head @click="sort('date')" class="cursor-pointer w-[20%]">
+                    <table-head @click="sort('date')" class="cursor-pointer min-w-[12rem]">
                         <div class="flex justify-between items-center">
                             <p>Date</p>
                             <i-radix-icons-caret-sort />

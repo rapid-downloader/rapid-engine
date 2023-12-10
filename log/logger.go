@@ -3,6 +3,7 @@ package log
 import (
 	"fmt"
 	"log"
+	"os"
 	"sync"
 
 	"github.com/rapid-downloader/rapid/setting"
@@ -48,6 +49,11 @@ func New(provider string) Logger {
 
 func Println(args ...interface{}) {
 	logging.Println(args...)
+}
+
+func Fatal(args ...interface{}) {
+	logging.Println(args...)
+	os.Exit(1)
 }
 
 func Printf(format string, args ...interface{}) {

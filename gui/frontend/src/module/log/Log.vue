@@ -8,7 +8,7 @@ import useLog from './api'
 const now = new Date()
 
 const date = reactive({
-    day: now.getDate(),
+    day: now.getDate() < 10 ? `0${now.getDate()}` : now.getDate(),
     month: now.getMonth()+1,
     year: now.getFullYear()
 })
