@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import Cato from '@/assets/images/cato.svg'
-import { Download, Sort } from '../types'
+import { Sort } from '../types'
 import { parseSize, parseDate, statusColor, parseTimeleft } from '@/lib/parse';
 import FileType from './FileType.vue'
 import StatusIcon from './StatusIcon.vue';
+import { client } from 'wailsjs/go/models';
 
 import {
     Table,
@@ -18,7 +19,7 @@ import { computed, ref } from 'vue';
 import { useRouteQuery } from '@vueuse/router';
 
 const props = defineProps<{
-    items: Record<string, Download>,
+    items: Record<string, client.Download>,
 }>()
 
 const asc = ref(false)

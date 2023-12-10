@@ -1,5 +1,4 @@
 import { useDateFormat } from "@vueuse/core"
-import { Status } from "@/module/home/types"
 
 export function parseSize(size: number): string {
     const KB = 1024
@@ -46,8 +45,8 @@ export function parseTimeleft(timeLeft: number): string {
     return `${h}:${m}:${s}`;
 }
 
-export function statusColor(status: Status): string {
-    const records: Record<Status, string> = {
+export function statusColor(status: string): string {
+    const records: Record<string, string> = {
         'Completed': 'text-success',
         'Downloading': 'text-info',
         'Failed': 'text-destructive',

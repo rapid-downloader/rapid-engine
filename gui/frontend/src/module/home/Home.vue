@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button'
 import Header from '@/components/Header.vue';
 import DownloadList from './components/DownloadList.vue';
 import { computed, watch, onUnmounted, ref } from 'vue';
-import { Download } from './types';
 import XTooltip from '@/components/ui/tooltip/XTooltip.vue';
 import Filter from './components/Filter.vue';
 import Entries from './api'
@@ -11,7 +10,8 @@ import XDialog from '@/components/ui/dialog/XDialog.vue';
 import DownloadDialog from '../download/components/DownloadDialog.vue';
 import { useNow, useTimeout } from '@vueuse/core';
 //@ts-ignore
-import { EventsOn } from '@/../wailsjs/runtime/runtime'
+import { EventsOn } from '@/../wailsjs/runtime'
+import { client } from 'wailsjs/go/models'
 
 const types = [
     { value: 'Document', label: 'Document' },
@@ -29,7 +29,7 @@ const statuses = [
     { value: 'Completed', label: 'Completed' },
 ]
 
-const dlentries = ref<Record<string, Download>>({})
+const dlentries = ref<Record<string, client.Download>>({})
 
 const entries = Entries()
 
@@ -43,7 +43,7 @@ onUnmounted(async () => {
     await entries.updateAll(dlentries.value)
 })
 
-async function fetched(result: Download) {
+async function fetched(result: client.Download) {
     dlentries.value[result.id] = result
     await entries.update(result)
 }

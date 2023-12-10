@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { Status } from '../types'
 import { statusColor } from '@/lib/parse'
 
 defineProps<{
-    status: Status
+    status: string
 }>()
 </script>
 

@@ -6,12 +6,11 @@ import { Button } from '@/components/ui/button';
 import { required, url, helpers } from '@vuelidate/validators'
 import { useVuelidate } from '@vuelidate/core'
 import useDownloader from '../api'
-import { Download } from '@/module/home/types';
 import { DialogClose } from 'radix-vue';
 import { client } from 'wailsjs/go/models';
 
 const emits = defineEmits<{
-    (e: 'fetched', entry: Download): void
+    (e: 'fetched', entry: client.Download): void
 }>()
 
 const form = reactive({
@@ -25,7 +24,7 @@ const rules = {
     }
 }
 
-const downloader = useDownloader('http')
+const downloader = useDownloader('binding')
 
 enum State {
     Init,
@@ -35,7 +34,7 @@ enum State {
 
 const validation = useVuelidate(rules, form)
 const state = ref<State>(State.Init)
-const result = ref<Download>()
+const result = ref<client.Download>()
 
 async function fetch(e: Event) {
     e.preventDefault()

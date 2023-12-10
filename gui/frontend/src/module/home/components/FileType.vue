@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { Type } from '../types'
 
 defineProps<{
-    type?: Type
+    type?: string
 }>()
 </script>
 

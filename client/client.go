@@ -23,21 +23,21 @@ type Request struct {
 }
 
 type Download struct {
-	ID               string
-	Name             string
-	Url              string
-	Provider         string
-	Size             int64
-	Type             string
-	Chunklen         int
-	Resumable        bool
-	Progress         float64
-	Expired          bool
-	DownloadedChunks []int64
-	TimeLeft         int
-	Speed            int
-	Status           string
-	Date             time.Time
+	ID               string    `json:"id"`
+	Name             string    `json:"name"`
+	Url              string    `json:"url"`
+	Provider         string    `json:"provider"`
+	Size             int64     `json:"size"`
+	Type             string    `json:"type"`
+	Chunklen         int       `json:"chunklen"`
+	Resumable        bool      `json:"resumable"`
+	Progress         float64   `json:"progress"`
+	Expired          bool      `json:"expired"`
+	DownloadedChunks []int64   `json:"downloadedChunks"`
+	TimeLeft         int       `json:"timeLeft"`
+	Speed            int       `json:"speed"`
+	Status           string    `json:"status"`
+	Date             time.Time `json:"date"`
 }
 
 type Progress struct {

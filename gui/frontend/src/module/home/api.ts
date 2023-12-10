@@ -1,18 +1,19 @@
 import { Http } from "@/composable"
-import { BatchDownload, Download, UpdateDownload } from "./types"
+import { BatchDownload, UpdateDownload } from "./types"
+import { client } from "wailsjs/go/models"
 
 export default function Entries() {
 
     const http = Http()
 
-    async function all(): Promise<Record<string, Download>> {
+    async function all(): Promise<Record<string, client.Download>> {
         try {
-            const res = await http.get<Download[]>('/entries')
+            const res = await http.get<client.Download[]>('/entries')
             if (res.status !== 200) {
                 return {}
             }
 
-            const data: Record<string, Download> = {}
+            const data: Record<string, client.Download> = {}
 
             for (const entry of res.data) {
                 data[entry.id] = entry
@@ -24,7 +25,7 @@ export default function Entries() {
         }
     }
 
-    async function updateAll(entries: Record<string, Download>): Promise<boolean> {
+    async function updateAll(entries: Record<string, client.Download>): Promise<boolean> {
         try {
             const ids: string[] = []
             const payload: UpdateDownload[] = []
@@ -47,7 +48,7 @@ export default function Entries() {
         }
     }
 
-    async function update(entry: Download) {
+    async function update(entry: client.Download) {
         try {
             const req: UpdateDownload = {
                 url: entry.url,
