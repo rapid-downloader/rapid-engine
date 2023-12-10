@@ -41,12 +41,12 @@ type Download struct {
 }
 
 type Progress struct {
-	ID         string
-	Index      int
-	Downloaded int64
-	Size       int64
-	Progress   float64
-	Done       bool
+	ID         string  `json:"id"`
+	Index      int     `json:"index"`
+	Downloaded int64   `json:"downloaded"`
+	Size       int64   `json:"size"`
+	Progress   float64 `json:"progress"`
+	Done       bool    `json:"done"`
 }
 
 type OnProgress = func(progress Progress, err error)

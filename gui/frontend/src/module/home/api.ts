@@ -1,7 +1,7 @@
 import { Http } from "@/composable"
 import { BatchDownload, Download, UpdateDownload } from "./types"
 
-export default function Entrie() {
+export default function Entries() {
 
     const http = Http()
 

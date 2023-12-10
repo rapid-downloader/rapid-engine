@@ -19,9 +19,11 @@ const logs = ref<string[]>([])
 
 const log = useLog()
 
-onMounted(async () => {
+async function init() {
     logs.value = await log.get(`${date.day}-${now.getMonth()+1}-${date.year}`)
-})
+}
+
+init()
 
 watch(date, async (val) => {
     logs.value = await log.get(`${date.day}-${now.getMonth()+1}-${date.year}`)
@@ -30,7 +32,6 @@ watch(date, async (val) => {
 const items = computed(() => {
     return logs.value.filter(log => log.toLowerCase().includes(search.value.toLowerCase()))
 })
-
 
 </script>
 

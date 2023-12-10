@@ -356,7 +356,7 @@ func (s *downloaderService) progressBar(c *websocket.Conn) {
 		case <-ping.C:
 			if err := c.WriteMessage(websocket.PingMessage, nil); err != nil {
 				logger.Println("error ping:", err)
-				continue
+				return
 			}
 		}
 	}

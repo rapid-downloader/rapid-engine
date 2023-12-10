@@ -69,55 +69,55 @@ const items = computed(() => {
 })
 
 interface Progress {
-    ID: string
-    Index: number
-    Downloaded: number
-    Size: number
-    Progress: number
-    Done: boolean
+    id: string
+    index: number
+    downloaded: number
+    size: number
+    progress: number
+    done: boolean
 }
 
 const now = useNow()
 const { ready, start } = useTimeout(1000, { controls: true })
 
 async function update(progress: Progress) {
-    if (dlentries.value[progress.ID].downloadedChunks === undefined) {
-        dlentries.value[progress.ID].downloadedChunks = new Array<number>()
+    if (dlentries.value[progress.id].downloadedChunks === undefined) {
+        dlentries.value[progress.id].downloadedChunks = new Array<number>()
     }
 
-    dlentries.value[progress.ID].downloadedChunks[progress.Index] = progress.Downloaded
-    dlentries.value[progress.ID].status = 'Downloading'
+    dlentries.value[progress.id].downloadedChunks[progress.index] = progress.downloaded
+    dlentries.value[progress.id].status = 'Downloading'
 
-    const downloadedTotal = dlentries.value[progress.ID]
+    const downloadedTotal = dlentries.value[progress.id]
         .downloadedChunks.reduce((total, chunk) => total + chunk)
     
     // calculate the total downloaded percentage
-    const size = dlentries.value[progress.ID].size
-    dlentries.value[progress.ID].progress = (downloadedTotal / size) * 100
+    const size = dlentries.value[progress.id].size
+    dlentries.value[progress.id].progress = (downloadedTotal / size) * 100
 
     // refresh calculation every second
     if (ready.value) {
         // calculcate the download speed
         const elapsedSecond = new Date(
-                now.value.getTime() - new Date(dlentries.value[progress.ID].date).getTime()
+                now.value.getTime() - new Date(dlentries.value[progress.id].date).getTime()
             ).getTime() / 1000
 
         const speed = downloadedTotal / elapsedSecond
-        dlentries.value[progress.ID].speed = speed
+        dlentries.value[progress.id].speed = speed
 
         // calculate time left
         const remainingSize = size - downloadedTotal
-        dlentries.value[progress.ID].timeLeft = remainingSize / speed
+        dlentries.value[progress.id].timeLeft = remainingSize / speed
         
         start()
     }
 
-    if (progress.Done) {
-        dlentries.value[progress.ID].status = 'Completed'
-        dlentries.value[progress.ID].timeLeft = 0
-        dlentries.value[progress.ID].progress = 100
+    if (progress.done) {
+        dlentries.value[progress.id].status = 'Completed'
+        dlentries.value[progress.id].timeLeft = 0
+        dlentries.value[progress.id].progress = 100
 
-        await entries.update(dlentries.value[progress.ID])
+        await entries.update(dlentries.value[progress.id])
     }
 }
 

@@ -40,8 +40,8 @@ func Connect(ctx context.Context, url string) Websocket {
 	conn.ctx, conn.cancel = context.WithCancel(ctx)
 
 	go conn.ping()
+	go conn.pong()
 	go conn.listenWrite()
-
 	return conn
 }
 
@@ -74,7 +74,7 @@ func (ws *wsClient) Listen(callback ListenFunc) {
 			for {
 				conn := ws.connect()
 				if conn == nil {
-					return
+					break // break the inner loop to reconnect when the server is down
 				}
 
 				_, msg, err := conn.ReadMessage()
@@ -120,6 +120,37 @@ func (ws *wsClient) Write(payload interface{}) error {
 
 const pingPeriod = 10 * time.Second
 
+func (ws *wsClient) pong() {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			conn := ws.connect()
+			if conn == nil {
+				continue
+			}
+
+			msg, _, err := conn.ReadMessage()
+			if err != nil {
+				log.Println("error pong:", err)
+				ws.close()
+			}
+
+			if msg == websocket.PingMessage {
+				if err := conn.WriteControl(websocket.PongMessage, []byte{}, time.Now().Add(pingPeriod/2)); err != nil {
+					ws.close()
+				}
+
+			}
+
+		case <-ws.ctx.Done():
+			return
+		}
+	}
+}
+
 func (ws *wsClient) ping() {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
@@ -135,6 +166,7 @@ func (ws *wsClient) ping() {
 			if err := conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(pingPeriod/2)); err != nil {
 				ws.close()
 			}
+
 		case <-ws.ctx.Done():
 			return
 		}
