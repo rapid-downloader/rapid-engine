@@ -86,14 +86,7 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 
 	if watcher, ok := dl.(downloader.Watcher); ok {
 		watcher.Watch(func(data ...interface{}) {
-			channel.Publish(map[string]interface{}{
-				"id":         data[0],
-				"index":      data[1],
-				"downloaded": data[2],
-				"size":       data[3],
-				"progress":   data[4],
-				"done":       false,
-			})
+			channel.Publish(data[0])
 		})
 	}
 
@@ -103,15 +96,6 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 	}
 
 	s.memstore.Delete(entry.ID())
-
-	channel.Publish(map[string]interface{}{
-		"id":         entry.ID(),
-		"index":      0,
-		"downloaded": entry.Size(),
-		"size":       entry.Size(),
-		"progress":   100,
-		"done":       true,
-	})
 
 	status := "Completed"
 	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
@@ -155,14 +139,7 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 
 	if watcher, ok := dl.(downloader.Watcher); ok {
 		watcher.Watch(func(data ...interface{}) {
-			channel.Publish(map[string]interface{}{
-				"id":         data[0],
-				"index":      data[1],
-				"downloaded": data[2],
-				"size":       data[3],
-				"progress":   data[4],
-				"done":       false,
-			})
+			channel.Publish(data[0])
 		})
 	}
 
@@ -172,14 +149,6 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 	}
 
 	s.memstore.Delete(entry.ID())
-	channel.Publish(map[string]interface{}{
-		"id":         entry.ID(),
-		"index":      0,
-		"downloaded": entry.Size(),
-		"size":       entry.Size(),
-		"progress":   100,
-		"done":       true,
-	})
 
 	status := "Completed"
 	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
@@ -223,14 +192,7 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 
 	if watcher, ok := dl.(downloader.Watcher); ok {
 		watcher.Watch(func(data ...interface{}) {
-			channel.Publish(map[string]interface{}{
-				"id":         data[0],
-				"index":      data[1],
-				"downloaded": data[2],
-				"size":       data[3],
-				"progress":   data[4],
-				"done":       false,
-			})
+			channel.Publish(data[0])
 		})
 	}
 
@@ -240,15 +202,6 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 		log.Printf("error restarting %s: %s", entry.Name(), err.Error())
 		return
 	}
-
-	channel.Publish(map[string]interface{}{
-		"id":         entry.ID(),
-		"index":      0,
-		"downloaded": entry.Size(),
-		"size":       entry.Size(),
-		"progress":   100,
-		"done":       true,
-	})
 
 	status := "Completed"
 	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{

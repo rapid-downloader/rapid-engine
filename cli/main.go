@@ -88,11 +88,18 @@ func main() {
 	for {
 		select {
 		case <-ctx.Done():
+			close(rapid)
 			return
 		case <-interrupt:
 			stop(rapid)
 			return
 		}
+	}
+}
+
+func close(rapid client.Rapid) {
+	if closer, ok := rapid.(client.RapidCloser); ok {
+		closer.Close()
 	}
 }
 
@@ -103,4 +110,5 @@ func stop(rapid client.Rapid) {
 	}
 
 	rapid.Stop(entry.ID)
+	close(rapid)
 }

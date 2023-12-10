@@ -14,39 +14,39 @@ type Cookie struct {
 }
 
 type Request struct {
-	Url         string   `json:"url"`
-	Client      string   `json:"client"`
-	Provider    string   `json:"provider"`
-	ContentType string   `json:"contentType"`
-	UserAgent   string   `json:"userAgent"`
-	Cookies     []Cookie `json:"cookies"`
+	Url         string    `json:"url"`
+	Provider    string    `json:"provider"`
+	Client      *string   `json:"client"`
+	ContentType *string   `json:"contentType"`
+	UserAgent   *string   `json:"userAgent"`
+	Cookies     *[]Cookie `json:"cookies"`
 }
 
 type Download struct {
-	ID               string
-	Name             string
-	Url              string
-	Provider         string
-	Size             int64
-	Type             string
-	Chunklen         int
-	Resumable        bool
-	Progress         float64
-	Expired          bool
-	DownloadedChunks []int64
-	TimeLeft         int
-	Speed            int
-	Status           string
-	Date             time.Time
+	ID               string    `json:"id"`
+	Name             string    `json:"name"`
+	Url              string    `json:"url"`
+	Provider         string    `json:"provider"`
+	Size             int64     `json:"size"`
+	Type             string    `json:"type"`
+	Chunklen         int       `json:"chunklen"`
+	Resumable        bool      `json:"resumable"`
+	Progress         float64   `json:"progress"`
+	Expired          bool      `json:"expired"`
+	DownloadedChunks []int64   `json:"downloadedChunks"`
+	TimeLeft         int       `json:"timeLeft"`
+	Speed            int       `json:"speed"`
+	Status           string    `json:"status"`
+	Date             time.Time `json:"date"`
 }
 
 type Progress struct {
-	ID         string
-	Index      int
-	Downloaded int64
-	Size       int64
-	Progress   float64
-	Done       bool
+	ID         string  `json:"id"`
+	Index      int     `json:"index"`
+	Downloaded int64   `json:"downloaded"`
+	Size       int64   `json:"size"`
+	Progress   float64 `json:"progress"`
+	Done       bool    `json:"done"`
 }
 
 type OnProgress = func(progress Progress, err error)
@@ -57,11 +57,12 @@ type Rapid interface {
 	// and the caller should return the error and end the callback
 	Listen(progress OnProgress)
 
-	Download(req Request) (*Download, error)
-	Resume(id string) (*Download, error)
-	Restart(id string) (*Download, error)
+	Fetch(req Request) (*Download, error)
+	Download(id string) error
+	Resume(id string) error
+	Restart(id string) error
 	Stop(id string) error
-	Delete(id string) error
+	Pause(id string) error
 }
 
 type RapidCloser interface {
