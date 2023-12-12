@@ -144,7 +144,7 @@ func (c *chunk) download(ctx context.Context) error {
 			Downloaded: n,
 			Size:       c.size,
 			Progress:   float64(100 * n / c.size),
-			Done:       true,
+			Done:       false,
 		},
 	)
 

@@ -5,6 +5,7 @@ import (
 	logger "log"
 	"time"
 
+	rapidClient "github.com/rapid-downloader/rapid/client"
 	"github.com/rapid-downloader/rapid/log"
 
 	"github.com/goccy/go-json"
@@ -96,6 +97,14 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 	}
 
 	s.memstore.Delete(entry.ID())
+	channel.Publish(rapidClient.Progress{
+		ID:         entry.ID(),
+		Index:      0,
+		Downloaded: entry.Size(),
+		Size:       entry.Size(),
+		Progress:   100,
+		Done:       true,
+	})
 
 	status := "Completed"
 	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
@@ -149,6 +158,14 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 	}
 
 	s.memstore.Delete(entry.ID())
+	channel.Publish(rapidClient.Progress{
+		ID:         entry.ID(),
+		Index:      0,
+		Downloaded: entry.Size(),
+		Size:       entry.Size(),
+		Progress:   100,
+		Done:       true,
+	})
 
 	status := "Completed"
 	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
@@ -202,6 +219,15 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 		log.Printf("error restarting %s: %s", entry.Name(), err.Error())
 		return
 	}
+
+	channel.Publish(rapidClient.Progress{
+		ID:         entry.ID(),
+		Index:      0,
+		Downloaded: entry.Size(),
+		Size:       entry.Size(),
+		Progress:   100,
+		Done:       true,
+	})
 
 	status := "Completed"
 	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
