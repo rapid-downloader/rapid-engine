@@ -130,7 +130,7 @@ func (s *entryService) Routes() []api.Route {
 			Handler: s.fetch,
 		},
 		{
-			Path:    "/entry/:id",
+			Path:    "/entries/:id",
 			Method:  "GET",
 			Handler: s.getEntry,
 		},
@@ -140,7 +140,7 @@ func (s *entryService) Routes() []api.Route {
 			Handler: s.getAllEntry,
 		},
 		{
-			Path:    "/entry/:id",
+			Path:    "/entries/:id",
 			Method:  "PUT",
 			Handler: s.updateEntry,
 		},
@@ -150,7 +150,7 @@ func (s *entryService) Routes() []api.Route {
 			Handler: s.updateAllEntry,
 		},
 		{
-			Path:    "/delete/entry/:id",
+			Path:    "/delete/entries/:id",
 			Method:  "DELETE",
 			Handler: s.deleteEntry,
 		},

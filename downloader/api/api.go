@@ -69,7 +69,7 @@ func (s *downloaderService) download(ctx *fiber.Ctx) error {
 	})
 
 	if err != nil {
-		return response.Error(ctx, err.Error(), fiber.StatusBadGateway)
+		return response.InternalServerError(ctx, err.Error())
 	}
 
 	go s.doDownload(entry, client)
@@ -130,7 +130,7 @@ func (s *downloaderService) resume(ctx *fiber.Ctx) error {
 	})
 
 	if err != nil {
-		return response.Error(ctx, err.Error(), fiber.StatusBadGateway)
+		return response.InternalServerError(ctx, err.Error())
 	}
 
 	go s.doResume(entry, client)
@@ -191,7 +191,7 @@ func (s *downloaderService) restart(ctx *fiber.Ctx) error {
 	})
 
 	if err != nil {
-		return response.Error(ctx, err.Error(), fiber.StatusBadGateway)
+		return response.InternalServerError(ctx, err.Error())
 	}
 
 	go s.doRestart(entry, client)
@@ -251,7 +251,7 @@ func (s *downloaderService) pause(ctx *fiber.Ctx) error {
 	})
 
 	if err != nil {
-		return response.Error(ctx, err.Error(), fiber.StatusBadGateway)
+		return response.InternalServerError(ctx, err.Error())
 	}
 
 	return s.doStop(entry, ctx)
@@ -272,7 +272,7 @@ func (s *downloaderService) stop(ctx *fiber.Ctx) error {
 	})
 
 	if err != nil {
-		return response.Error(ctx, err.Error(), fiber.StatusBadGateway)
+		return response.InternalServerError(ctx, err.Error())
 	}
 
 	return s.doStop(entry, ctx)

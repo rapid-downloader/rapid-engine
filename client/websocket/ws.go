@@ -16,10 +16,7 @@ type ListenFunc = func(msg []byte)
 type Websocket interface {
 	Listen(callback ListenFunc)
 	Write(payload interface{}) error
-}
-
-type WebsocketCloser interface {
-	Close()
+	Close() error
 }
 
 type wsClient struct {
@@ -153,7 +150,9 @@ func (ws *wsClient) close() {
 	ws.mutex.Unlock()
 }
 
-func (ws *wsClient) Close() {
+func (ws *wsClient) Close() error {
 	ws.cancel()
 	ws.close()
+
+	return nil
 }

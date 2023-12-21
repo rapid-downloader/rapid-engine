@@ -62,7 +62,7 @@ export default function Entries() {
                 status: entry.status,
             }
 
-            const res = await http.put(`/entry/${entry.id}`, req)
+            const res = await http.put(`/entries/${entry.id}`, req)
             return res.status === 200
         } catch (error) {
             // TODO: add notification

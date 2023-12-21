@@ -12,7 +12,7 @@ export interface Cookie {
 export interface Fetch {
     url: string
     provider: "default"
-    contentType?: string
+    mimeType?: string
     userAgent?: string
     cookies?: Cookie[]
 }

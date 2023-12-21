@@ -153,9 +153,5 @@ func (r *rapidClient) stop(t string, id string) error {
 
 func (r *rapidClient) Close() error {
 	r.cancel()
-	if closer, ok := r.ws.(websocket.WebsocketCloser); ok {
-		closer.Close()
-	}
-
-	return nil
+	return r.ws.Close()
 }
