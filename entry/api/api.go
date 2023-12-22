@@ -59,7 +59,7 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 	}
 
 	if err := s.store.Create(entry.ID(), toDownload); err != nil {
-		return response.Error(ctx, err.Error(), fiber.StatusInternalServerError)
+		return response.InternalServerError(ctx, err.Error())
 	}
 
 	return response.Success(ctx, toDownload)
@@ -150,7 +150,7 @@ func (s *entryService) Routes() []api.Route {
 			Handler: s.updateAllEntry,
 		},
 		{
-			Path:    "/delete/entries/:id",
+			Path:    "/entries/:id",
 			Method:  "DELETE",
 			Handler: s.deleteEntry,
 		},

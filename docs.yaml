@@ -210,6 +210,41 @@ paths:
                   status: 'Queued',
                   date: '2023-12-21 23:09:23.049130358 +0700 WIB m=+150.406718054'
                 }
+    put:
+      tags:
+        - Entry
+      description: Update one file entry detail
+      requestBody:
+        description: Payload for updating the file entry
+        required: true
+        content: 
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDownload'
+            example:
+                { 
+                  url: 'https://link.testfile.org/PDF50MB',
+                  provider: 'default',
+                  resumable: false,
+                  progres: 20,
+                  expired: true,
+                  downloadedChunks: [123,123,123,123,123],
+                  timeLeft: 2000,
+                  speed: 100,
+                  status: 'Downloading',
+                }
+      responses:
+        '200':
+          description: OK
+          
+    delete:
+      tags:
+        - Entry
+      description: Delete one file entry detail
+      responses:
+        '200':
+          description: OK
+          
   /entries:
     get:
       tags:
@@ -221,7 +256,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Download'
+                type: array
+                items:
+                  $ref: '#/components/schemas/UpdateDownload'
               example:
                 [
                   { 
@@ -242,7 +279,77 @@ paths:
                     date: '2023-12-21 23:09:23.049130358 +0700 WIB m=+150.406718054'
                   }
                 ]
+
+    put:
+      tags:
+        - Entry
+      description: Update batch file entry detail
+      requestBody:
+        description: Payload for updating the file entries
+        required: true
+        content: 
+          application/json:
+            schema:
+              type: object
+              properties:
+                ids: 
+                  type: array
+                  items:
+                    type: string
+                payload:
+                  type: array
+                  items: 
+                    $ref: '#/components/schemas/UpdateDownload'
+                  
+            example:
+                {
+                  ids: ['laAq2LJD21'],
+                  payload: [
+                    { 
+                      url: 'https://link.testfile.org/PDF50MB',
+                      provider: 'default',
+                      resumable: false,
+                      progres: 20,
+                      expired: true,
+                      downloadedChunks: [123,123,123,123,123],
+                      timeLeft: 2000,
+                      speed: 100,
+                      status: 'Downloading',
+                    }
+                  ]
+                }
+      responses:
+        '200':
+          description: OK
+                
       
+  /logs/{date}:
+    parameters:
+      - in: path
+        name: date
+        schema:
+          type: string
+        required: true
+        description: Date of a log
+        example: '/logs/18-12-2023'
+    get:
+      tags:
+        - Log
+      description: Get log from given day
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+              example:
+                [
+                  '12-18-2023 19:47:08 fetching url...',
+                  '12-18-2023 19:47:11 downloading chunk 0 from 0 to 50654285 (~48 MB)',
+                ]
   
 components:
   schemas:
@@ -338,3 +445,35 @@ components:
         date:
           type: string
           format: date
+          
+    UpdateDownload:
+      type: object
+      properties:
+        url: 
+          type: string
+        provider: 
+          type: string
+        resumable:
+          type: boolean
+        progress:
+          type: number
+          description: Downloaded bytes in percent
+        expired:
+          type: boolean
+          description: Tells that a link is already expired or not
+        downloadedChunks:
+          type: array
+          items:
+            type: number
+            format: int64
+          description: Downloaded bytes for each chunks
+        timeLeft:
+          type: number
+          description: Remaining time for a download to complete
+        speed:
+          type: number
+          format: float64
+          description: Download speed
+        status:
+          type: string
+          description: Download status that is one of Queued, Downloading, Paused, Stoped, Downloaded
