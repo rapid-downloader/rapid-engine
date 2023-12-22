@@ -34,3 +34,6 @@ cd gui
 wails dev
 ```
 
+## Build your own client
+Rapid download manager is a server-client app. The server is the engine itself, and is exposed via REST API. The API documentation can be found [here](https://editor.swagger.io/?url=https://raw.githubusercontent.com/rapid-downloader/rapid/master/docs.yaml)
+

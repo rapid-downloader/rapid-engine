@@ -9,8 +9,8 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/joho/godotenv"
 	"github.com/rapid-downloader/rapid/client"
-	_ "github.com/rapid-downloader/rapid/env"
 	"github.com/rapid-downloader/rapid/helper"
 	"github.com/vbauerster/mpb"
 	"github.com/vbauerster/mpb/decor"
@@ -50,6 +50,10 @@ func (p *progressBar) update(index int, downloaded int64, chunkSize int64) {
 	)
 
 	p.barMap.Store(i, bar)
+}
+
+func init() {
+	godotenv.Load("../.env")
 }
 
 func main() {

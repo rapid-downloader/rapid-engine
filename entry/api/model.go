@@ -21,11 +21,11 @@ type (
 	}
 
 	request struct {
-		Url         string   `json:"url"`
-		Provider    string   `json:"provider"`
-		ContentType string   `json:"contentType"`
-		UserAgent   string   `json:"userAgent"`
-		Cookies     []cookie `json:"cookies"`
+		Url       string   `json:"url"`
+		Provider  string   `json:"provider"`
+		MimeType  string   `json:"mimeType"`
+		UserAgent string   `json:"userAgent"`
+		Cookies   []cookie `json:"cookies"`
 	}
 
 	Download struct {
@@ -92,7 +92,7 @@ func (r *request) toOptions() []entry.Options {
 		entry.AddCookies(cookies),
 		entry.UseDownloader(r.Provider),
 		entry.AddHeaders(entry.Headers{
-			"Content-Type": r.ContentType,
+			"Content-Type": r.MimeType,
 			"User-Agent":   r.UserAgent,
 		}),
 	)

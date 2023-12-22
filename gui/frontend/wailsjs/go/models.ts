@@ -108,7 +108,7 @@ export namespace client {
 	    url: string;
 	    provider: string;
 	    client?: string;
-	    contentType?: string;
+	    mimeType?: string;
 	    userAgent?: string;
 	    cookies?: Cookie[];
 	
@@ -121,7 +121,7 @@ export namespace client {
 	        this.url = source["url"];
 	        this.provider = source["provider"];
 	        this.client = source["client"];
-	        this.contentType = source["contentType"];
+	        this.mimeType = source["mimeType"];
 	        this.userAgent = source["userAgent"];
 	        this.cookies = this.convertValues(source["cookies"], Cookie);
 	    }

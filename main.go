@@ -8,16 +8,21 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/joho/godotenv"
 	"github.com/rapid-downloader/rapid/api"
 	"github.com/rapid-downloader/rapid/db"
 	_ "github.com/rapid-downloader/rapid/downloader/api"
 	_ "github.com/rapid-downloader/rapid/entry/api"
 	"github.com/rapid-downloader/rapid/env"
-	_ "github.com/rapid-downloader/rapid/env"
 	_ "github.com/rapid-downloader/rapid/log/api"
 )
 
+func init() {
+	godotenv.Load()
+}
+
 func main() {
+
 	db.Open()
 	defer db.Close()
 
