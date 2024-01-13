@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/rapid-downloader/rapid/log"
@@ -11,7 +12,7 @@ import (
 
 type Store interface {
 	Get(id string) *Download
-	GetAll() []Download
+	GetAll(page, limit int) []Download
 	Create(id string, val Download) error
 	CreateBatch(id []string, entries []Download) error
 	Update(id string, val UpdateDownload) error
@@ -60,7 +61,9 @@ func (s *store) Get(id string) *Download {
 	return &out
 }
 
-func (s *store) GetAll() []Download {
+var errStop = errors.New("stoped")
+
+func (s *store) GetAll(page, limit int) []Download {
 	var entries []Download
 
 	err := s.db.Batch(func(tx *bbolt.Tx) error {
@@ -69,7 +72,21 @@ func (s *store) GetAll() []Download {
 			return fmt.Errorf("error creating bucket on GetAll:%s", err.Error())
 		}
 
+		i := 0
+
+		start := (page - 1) * limit
+		end := start + limit
+
 		return bucket.ForEach(func(k, v []byte) error {
+			i++
+			if i < start {
+				return nil
+			}
+
+			if i == end {
+				return errStop
+			}
+
 			var entry Download
 			if err := json.Unmarshal(v, &entry); err != nil {
 				return fmt.Errorf("error fetching from bucket on get all:%s", err.Error())
@@ -77,12 +94,13 @@ func (s *store) GetAll() []Download {
 
 			entry.ID = string(k)
 			entries = append(entries, entry)
+
 			return nil
 		})
 
 	})
 
-	if err != nil {
+	if err != nil && err != errStop {
 		log.Println("error fetching entries from db:", err.Error())
 		return nil
 	}
@@ -102,6 +120,7 @@ func (s *store) Create(id string, entry Download) error {
 			return fmt.Errorf("error marshalling for put operation:%s", err.Error())
 		}
 
+		// TODO: use sequence for the id so it can be sorted
 		return bucket.Put([]byte(id), val)
 	})
 }
@@ -119,6 +138,7 @@ func (s *store) CreateBatch(id []string, entries []Download) error {
 				return fmt.Errorf("error marshalling for batch operation:%s", err.Error())
 			}
 
+			// TODO: use sequence for the id so it can be sorted
 			if err := bucket.Put([]byte(id[i]), val); err != nil {
 				return fmt.Errorf("error on put set batch:%s", err.Error())
 			}

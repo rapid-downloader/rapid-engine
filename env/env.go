@@ -2,9 +2,11 @@ package env
 
 import (
 	"os"
+
+	"github.com/rapid-downloader/rapid/utils"
 )
 
-func Get(key string) Parser {
+func Get(key string) utils.Parser {
 	env := os.Getenv(key)
-	return parse(env)
+	return utils.Parse(env)
 }

@@ -35,9 +35,19 @@ const dlentries = ref<Record<string, Download>>({})
 
 const entries = Entries()
 
+const page = ref(1)
 onMounted(async () => {
-    dlentries.value = await entries.all()
+    dlentries.value = await entries.all(page.value)
     loading.value = false
+})
+
+watch(page, async p => {
+    const nextEntries = await entries.all(p)
+
+    dlentries.value = {
+        ...dlentries.value,
+        ...nextEntries
+    }
 })
 
 onUnmounted(async () => {
@@ -189,6 +199,6 @@ EventsOn('progress', async (...event: any) => {
         </div>
 
         <download-list-skeleton v-if="loading" />
-        <download-list v-else class="w-full" :items="items"/>
+        <download-list v-else class="w-full" :items="items" @paginate="page++"/>
     </div>
 </template>

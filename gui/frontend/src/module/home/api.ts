@@ -6,9 +6,9 @@ export default function Entries() {
 
     const http = Http()
 
-    async function all(): Promise<Record<string, Download>> {
+    async function all(page: number = 1): Promise<Record<string, Download>> {
         try {
-            const res = await http.get<Download[]>('/entries')
+            const res = await http.get<Download[]>(`/entries?page=${page}`)
             if (res.status !== 200) {
                 return {}
             }

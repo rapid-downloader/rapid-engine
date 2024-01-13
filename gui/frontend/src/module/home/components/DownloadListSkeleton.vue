@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
-
 </script>
 
 <template>

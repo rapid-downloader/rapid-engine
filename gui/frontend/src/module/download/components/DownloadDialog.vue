@@ -63,7 +63,6 @@ async function download(e: Event) {
     
     if (result.value) {
         await downloader.download(result.value.id)
-        console.log(result.value);
         emits('fetched', result.value)
     }
 }
