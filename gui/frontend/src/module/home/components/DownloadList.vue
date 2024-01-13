@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import Cato from '@/assets/images/cato.svg'
-import { Sort } from '../types'
+import { Download, Sort } from '../types'
 import { parseSize, parseDate, statusColor, parseTimeleft } from '@/lib/parse';
 import FileType from './FileType.vue'
 import StatusIcon from './StatusIcon.vue';
-import { client } from 'wailsjs/go/models';
 
 import {
     Table,
@@ -17,9 +16,10 @@ import {
 } from '@/components/ui/table'
 import { computed, ref } from 'vue';
 import { useRouteQuery } from '@vueuse/router';
+import { Button } from '@/components/ui/button';
 
 const props = defineProps<{
-    items: Record<string, client.Download>,
+    items: Record<string, Download>,
 }>()
 
 const asc = ref(false)
@@ -57,8 +57,7 @@ const items = computed(() => {
 </script>
 
 <template>
-    <div
-        :class="`${!items || Object.keys(items).length === 0 ? '' : 'bg-secondary border border-muted mb-3 rounded-md px-2'}`">
+    <div :class="`${!items || Object.keys(items).length === 0 ? '' : 'bg-secondary border border-muted mb-3 rounded-md px-2'}`">
         <div v-if="!items || Object.keys(items).length === 0" class="w-fit mx-auto">
             <img :src="Cato" alt="empty" class="mx-auto my-auto w-[20rem] h-[80vh]">
         </div>
@@ -103,12 +102,23 @@ const items = computed(() => {
                 </table-row>
             </table-header>
             <table-body>
-                <table-row v-for="[id, item] in items" :key="id" class="group relative cursor-pointer" @click="$router.push(`/download/${item.id}`)">
+                <table-row v-for="[id, item] in items" :key="id" class="group relative cursor-pointer">
                     <table-cell class="font-medium">
                         <file-type :type="item.type" /> 
                     </table-cell>
-                    <table-cell>
+                    <table-cell class="relative group">
                         <p class="w-[95%] truncate">{{ item.name }}</p>
+                        <div class="hidden group-hover:flex absolute top-1/2 -translate-y-1/2 right-5 gap-2 py-2">
+                            <Button size="icon" variant="ghost" class="rounded-full hover:bg-secondary hover:text-foreground w-7 h-7">
+                                <i-fluent:play-16-regular />
+                            </Button>
+                            <Button size="icon" variant="ghost" class="rounded-full text-warning hover:bg-warning hover:text-warning-foreground w-7 h-7">
+                                <i-fluent:stop-16-regular />
+                            </Button>
+                            <Button size="icon" variant="ghost" class="rounded-full text-destructive hover:bg-destructive hover:text-destructive-foreground w-7 h-7">
+                                <i-fluent:delete-16-regular/>
+                            </Button>
+                        </div>
                     </table-cell>
                     <table-cell>
                         {{ parseSize(item.size) }}

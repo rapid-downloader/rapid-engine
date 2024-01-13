@@ -38,9 +38,9 @@ const items = computed(() => {
 <template>
     <Header></Header>
     
-    <div :class="`${!items || items.length === 0 ? '' : 'bg-secondary border border-muted mb-3 rounded-md p-2'} mt-5`">
+    <div :class="`${!items || items.length === 0 ? '' : 'bg-secondary border border-muted mb-3 rounded-md p-2'} mt-7`">
         <div v-if="items.length === 0" class="w-fit mx-auto">
-            <img :src="Cato" alt="empty" class="mx-auto my-auto w-[20rem] h-screen -mt-[5rem]">
+            <img :src="Cato" alt="empty" class="mx-auto my-auto w-[20rem] h-[80vh]">
         </div>
         <div v-else class="w-fit flex flex-col gap-2 py-1">
             <div v-for="(item, i) in items" :key="i" :class="`flex gap-2 ${item.toLowerCase().includes('error') ? 'text-destructive' : ''}`">

@@ -2,7 +2,8 @@
 import { Button } from '@/components/ui/button'
 import Header from '@/components/Header.vue';
 import DownloadList from './components/DownloadList.vue';
-import { computed, watch, onUnmounted, ref } from 'vue';
+import DownloadListSkeleton from './components/DownloadListSkeleton.vue';
+import { computed, watch, onUnmounted, ref, onMounted } from 'vue';
 import XTooltip from '@/components/ui/tooltip/XTooltip.vue';
 import Filter from './components/Filter.vue';
 import Entries from './api'
@@ -11,7 +12,7 @@ import DownloadDialog from '../download/components/DownloadDialog.vue';
 import { useNow, useTimeout } from '@vueuse/core';
 //@ts-ignore
 import { EventsOn } from '@/../wailsjs/runtime'
-import { client } from 'wailsjs/go/models'
+import { Download } from './types';
 
 const types = [
     { value: 'Document', label: 'Document' },
@@ -29,21 +30,21 @@ const statuses = [
     { value: 'Completed', label: 'Completed' },
 ]
 
-const dlentries = ref<Record<string, client.Download>>({})
+const loading = ref(true)
+const dlentries = ref<Record<string, Download>>({})
 
 const entries = Entries()
 
-async function init() {
+onMounted(async () => {
     dlentries.value = await entries.all()
-}
-
-init()
+    loading.value = false
+})
 
 onUnmounted(async () => {
     await entries.updateAll(dlentries.value)
 })
 
-async function fetched(result: client.Download) {
+async function fetched(result: Download) {
     dlentries.value[result.id] = result
     await entries.update(result)
 }
@@ -187,6 +188,7 @@ EventsOn('progress', async (...event: any) => {
             </Filter>
         </div>
 
-        <download-list class="w-full" :items="items"/>
+        <download-list-skeleton v-if="loading" />
+        <download-list v-else class="w-full" :items="items"/>
     </div>
 </template>

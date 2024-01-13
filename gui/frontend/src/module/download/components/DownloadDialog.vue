@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue';
+import { reactive, ref } from 'vue';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { required, url, helpers } from '@vuelidate/validators'
 import { useVuelidate } from '@vuelidate/core'
-import useDownloader from '../api'
+import { Downloader } from '../api'
 import { DialogClose } from 'radix-vue';
-import { client } from 'wailsjs/go/models';
+import { Download, Request } from '@/module/home/types';
 
 const emits = defineEmits<{
-    (e: 'fetched', entry: client.Download): void
+    (e: 'fetched', entry: Download): void
 }>()
 
 const form = reactive({
@@ -24,7 +24,7 @@ const rules = {
     }
 }
 
-const downloader = useDownloader('binding')
+const downloader = Downloader()
 
 enum State {
     Init,
@@ -34,7 +34,7 @@ enum State {
 
 const validation = useVuelidate(rules, form)
 const state = ref<State>(State.Init)
-const result = ref<client.Download>()
+const result = ref<Download>()
 
 async function fetch(e: Event) {
     e.preventDefault()
@@ -48,7 +48,7 @@ async function fetch(e: Event) {
     result.value = await downloader.fetch({
         provider: "default",
         url: form.url
-    } as client.Request)
+    } as Request)
 
     state.value = State.Fetched
 }
