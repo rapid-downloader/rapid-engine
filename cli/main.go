@@ -61,7 +61,7 @@ func main() {
 	signal.Notify(interrupt, []os.Signal{syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGSTOP, os.Interrupt}...)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	rapid, err := NewRapid(ctx, helper.ID(5))
+	rapid, err := NewRapid(ctx, helper.Id(5))
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -155,10 +155,10 @@ onUnmounted(() => {
                         <table-cell class="font-medium">
                             <file-type :type="item.type" /> 
                         </table-cell>
-                        <table-cell class="relative group/cell">
-                            <p class="w-[95%] group-hover/cell:w-[77%] truncate">{{ item.name }}</p>
+                        <table-cell class="min-w-[30rem] relative group/cell">
+                            <p class="w-[95%] group-hover/cell:w-[75%] truncate">{{ item.name }}</p>
                             <div class="hidden group-hover/cell:flex absolute top-1/2 -translate-y-1/2 right-5 gap-2 py-2">
-                                <Button size="icon" variant="ghost" class="group/action rounded-full hover:bg-secondary hover:text-foreground w-7 h-7">
+                                <Button size="icon" variant="ghost" class="bg-muted group/action rounded-full hover:bg-secondary hover:text-foreground w-7 h-7">
                                     <i-fluent:play-16-regular class="group-hover/action:hidden" />
                                     <i-fluent:play-16-filled class="hidden group-hover/action:block" />
                                 </Button>

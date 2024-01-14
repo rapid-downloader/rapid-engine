@@ -15,7 +15,7 @@ const (
 
 var src = rand.NewSource(time.Now().UnixNano())
 
-func ID(n int) string {
+func Id(n int) string {
 	sb := strings.Builder{}
 	sb.Grow(n)
 

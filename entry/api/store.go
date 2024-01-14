@@ -2,8 +2,8 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	logger "log"
 
 	"github.com/rapid-downloader/rapid/log"
 
@@ -61,8 +61,6 @@ func (s *store) Get(id string) *Download {
 	return &out
 }
 
-var errStop = errors.New("stoped")
-
 func (s *store) GetAll(page, limit int) []Download {
 	var entries []Download
 
@@ -77,14 +75,17 @@ func (s *store) GetAll(page, limit int) []Download {
 		start := (page - 1) * limit
 		end := start + limit
 
-		return bucket.ForEach(func(k, v []byte) error {
+		cursor := bucket.Cursor()
+		logger.Println(start, end, bucket.Stats().KeyN)
+
+		for k, v := cursor.Last(); k != nil; k, v = cursor.Prev() {
 			i++
 			if i < start {
-				return nil
+				continue
 			}
 
 			if i == end {
-				return errStop
+				break
 			}
 
 			var entry Download
@@ -94,13 +95,12 @@ func (s *store) GetAll(page, limit int) []Download {
 
 			entry.ID = string(k)
 			entries = append(entries, entry)
+		}
 
-			return nil
-		})
-
+		return nil
 	})
 
-	if err != nil && err != errStop {
+	if err != nil {
 		log.Println("error fetching entries from db:", err.Error())
 		return nil
 	}
@@ -120,7 +120,6 @@ func (s *store) Create(id string, entry Download) error {
 			return fmt.Errorf("error marshalling for put operation:%s", err.Error())
 		}
 
-		// TODO: use sequence for the id so it can be sorted
 		return bucket.Put([]byte(id), val)
 	})
 }
@@ -138,7 +137,6 @@ func (s *store) CreateBatch(id []string, entries []Download) error {
 				return fmt.Errorf("error marshalling for batch operation:%s", err.Error())
 			}
 
-			// TODO: use sequence for the id so it can be sorted
 			if err := bucket.Put([]byte(id[i]), val); err != nil {
 				return fmt.Errorf("error on put set batch:%s", err.Error())
 			}

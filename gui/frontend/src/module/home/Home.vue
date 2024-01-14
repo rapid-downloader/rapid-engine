@@ -46,7 +46,7 @@ watch(page, async p => {
 
     dlentries.value = {
         ...dlentries.value,
-        ...nextEntries
+        ...nextEntries,
     }
 })
 

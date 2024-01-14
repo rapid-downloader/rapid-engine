@@ -78,7 +78,6 @@ func (r *rapidClient) Fetch(request client.Request) (*client.Download, error) {
 
 	defer res.Body.Close()
 	var result client.Download
-	// TODO: check if this is working or not
 	if err := helper.UnmarshalBody(res, &result); err != nil {
 		return nil, fmt.Errorf("error unmarshalling buffer: %s", err)
 	}
