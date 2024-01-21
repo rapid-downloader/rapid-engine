@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"testing"
 	"time"
@@ -104,7 +105,15 @@ func TestWorkerPool_Work(t *testing.T) {
 
 	for i := 0; i < 20; i++ {
 		wg.Add(1)
-		jobs = append(jobs, newTestJob(nil, false, wg))
+
+		index := i
+		job := newTestJob(func() error {
+			log.Println("working on", index)
+			time.Sleep(2 * time.Second)
+			return nil
+		}, false, wg)
+
+		jobs = append(jobs, job)
 	}
 
 	worker, err := New(ctx, 5, len(jobs))

@@ -14,6 +14,7 @@ type (
 		MaxRetry              int    `toml:"max_retry"`
 		MinChunkSize          int64  `toml:"min_chunk_size"`
 		DisplayedEntriesCount int    `toml:displayed_entries_count`
+		MaxChunkCount         int    `toml:"max_chunk_count"`
 	}
 )
 
@@ -32,6 +33,7 @@ func Default() *Setting {
 		DisplayedEntriesCount: 25,
 		MaxRetry:              3,
 		MinChunkSize:          1024 * 1024 * 5, // 5 MB
+		MaxChunkCount:         8,
 	}
 }
 

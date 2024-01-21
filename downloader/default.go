@@ -41,7 +41,7 @@ func (dl *localDownloader) Download(entry entry.Entry) error {
 		return errUrlExpired
 	}
 
-	w, err := worker.New(entry.Context(), entry.ChunkLen(), entry.ChunkLen())
+	w, err := worker.New(entry.Context(), dl.setting.MaxChunkCount, entry.ChunkLen())
 	if err != nil {
 		log.Println("error creating worker", err.Error())
 		return err
@@ -53,15 +53,17 @@ func (dl *localDownloader) Download(entry entry.Entry) error {
 
 	chunks := make([]*chunk, entry.ChunkLen())
 	for i := 0; i < entry.ChunkLen(); i++ {
-		chunks[i] = newChunk(entry, i, dl.setting, &wg)
+		wg.Add(1)
+
+		index := i
+		chunks[index] = newChunk(entry, index, dl.setting, &wg)
 
 		if dl.onprogress != nil {
-			chunks[i].onProgress(dl.onprogress)
+			chunks[index].onProgress(dl.onprogress)
 		}
 	}
 
 	for _, chunk := range chunks {
-		wg.Add(1)
 		w.Add(chunk)
 	}
 
@@ -102,7 +104,7 @@ func (dl *localDownloader) Resume(entry entry.Entry) error {
 		return dl.Download(entry)
 	}
 
-	worker, err := worker.New(entry.Context(), entry.ChunkLen(), entry.ChunkLen())
+	worker, err := worker.New(entry.Context(), dl.setting.MaxChunkCount, entry.ChunkLen())
 	if err != nil {
 		log.Println("error creating worker", err.Error())
 		return err
