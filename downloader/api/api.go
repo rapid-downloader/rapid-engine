@@ -22,13 +22,15 @@ import (
 )
 
 type downloaderService struct {
+	app      *fiber.App
 	memstore entry.Store
 	channel  api.Channel
 	store    entryApi.Store
 }
 
-func newService() api.Service {
+func newService(app *fiber.App) api.Service {
 	return &downloaderService{
+		app:      app,
 		memstore: entry.Memstore(),
 		channel:  api.CreateChannel("memstore"),
 		store:    entryApi.NewStore("download", db.DB()),
@@ -69,12 +71,12 @@ func (s *downloaderService) download(ctx *fiber.Ctx) error {
 	})
 
 	if err != nil {
-		return response.InternalServerError(ctx, err.Error())
+		return response.InternalServerError(ctx, err)
 	}
 
 	go s.doDownload(entry, client)
 
-	return response.Success(ctx, nil)
+	return response.Ok(ctx)
 }
 
 func (s *downloaderService) doDownload(entry entry.Entry, client string) {
@@ -130,12 +132,12 @@ func (s *downloaderService) resume(ctx *fiber.Ctx) error {
 	})
 
 	if err != nil {
-		return response.InternalServerError(ctx, err.Error())
+		return response.InternalServerError(ctx, err)
 	}
 
 	go s.doResume(entry, client)
 
-	return response.Success(ctx, nil)
+	return response.Ok(ctx)
 }
 
 func (s *downloaderService) doResume(entry entry.Entry, client string) {
@@ -191,12 +193,12 @@ func (s *downloaderService) restart(ctx *fiber.Ctx) error {
 	})
 
 	if err != nil {
-		return response.InternalServerError(ctx, err.Error())
+		return response.InternalServerError(ctx, err)
 	}
 
 	go s.doRestart(entry, client)
 
-	return response.Success(ctx, nil)
+	return response.Ok(ctx)
 }
 
 func (s *downloaderService) doRestart(entry entry.Entry, client string) {
@@ -251,7 +253,7 @@ func (s *downloaderService) pause(ctx *fiber.Ctx) error {
 	})
 
 	if err != nil {
-		return response.InternalServerError(ctx, err.Error())
+		return response.InternalServerError(ctx, err)
 	}
 
 	return s.doStop(entry, ctx)
@@ -272,7 +274,7 @@ func (s *downloaderService) stop(ctx *fiber.Ctx) error {
 	})
 
 	if err != nil {
-		return response.InternalServerError(ctx, err.Error())
+		return response.InternalServerError(ctx, err)
 	}
 
 	return s.doStop(entry, ctx)
@@ -286,10 +288,10 @@ func (s *downloaderService) doStop(entry entry.Entry, ctx *fiber.Ctx) error {
 	)
 
 	if err := dl.Stop(entry); err != nil {
-		return response.Error(ctx, fmt.Sprint("error stopping download:", err.Error()))
+		return response.InternalServerError(ctx, fmt.Errorf("error stopping download: %s", err.Error()))
 	}
 
-	return response.Success(ctx, nil)
+	return response.Ok(ctx)
 }
 
 func (s *downloaderService) progressBar(c *websocket.Conn) {
@@ -341,39 +343,13 @@ func (s *downloaderService) progressBar(c *websocket.Conn) {
 	}
 }
 
-func (s *downloaderService) Routes() []api.Route {
-	return []api.Route{
-		{
-			Path:    "/:client/download/:id",
-			Method:  "GET",
-			Handler: s.download,
-		},
-		{
-			Path:    "/:client/restart/:id",
-			Method:  "PUT",
-			Handler: s.restart,
-		},
-		{
-			Path:    "/:client/resume/:id",
-			Method:  "PUT",
-			Handler: s.resume,
-		},
-		{
-			Path:    "/pause/:id",
-			Method:  "PUT",
-			Handler: s.pause,
-		},
-		{
-			Path:    "/stop/:id",
-			Method:  "PUT",
-			Handler: s.stop,
-		},
-		{
-			Path:    "/ws/:client",
-			Method:  "GET",
-			Handler: websocket.New(s.progressBar),
-		},
-	}
+func (s *downloaderService) CreateRoutes() {
+	s.app.Add("GET", "/:client/download/:id", s.download)
+	s.app.Add("PUT", "/:client/restart/:id", s.restart)
+	s.app.Add("PUT", "/:client/resume/:id", s.resume)
+	s.app.Add("PUT", "/pause/:id", s.pause)
+	s.app.Add("PUT", "/stop/:id", s.stop)
+	s.app.Add("GET", "/ws/:client", websocket.New(s.progressBar))
 }
 
 func init() {

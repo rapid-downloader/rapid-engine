@@ -14,12 +14,12 @@ import (
 )
 
 type logService struct {
-	s *setting.Setting
+	app *fiber.App
 }
 
-func newService() api.Service {
+func newService(app *fiber.App) api.Service {
 	return &logService{
-		s: setting.Get(),
+		app: app,
 	}
 }
 
@@ -34,8 +34,9 @@ func today() string {
 
 func (s *logService) logs(ctx *fiber.Ctx) error {
 	date := ctx.Params("date", today())
+	setting := setting.Get()
 
-	path := filepath.Join(s.s.DataLocation, "logs", fmt.Sprintf("%s.txt", date))
+	path := filepath.Join(setting.DataLocation, "logs", fmt.Sprintf("%s.txt", date))
 	file, err := os.Open(path)
 	if err != nil {
 		return response.NotFound(ctx)
@@ -50,17 +51,11 @@ func (s *logService) logs(ctx *fiber.Ctx) error {
 		logs = append(logs, scanner.Text())
 	}
 
-	return response.Success(ctx, logs)
+	return response.Ok(ctx, logs)
 }
 
-func (s *logService) Routes() []api.Route {
-	return []api.Route{
-		{
-			Path:    "/logs/:date",
-			Method:  "GET",
-			Handler: s.logs,
-		},
-	}
+func (s *logService) CreateRoutes() {
+	s.app.Add("GET", "/logs/:date", s.logs)
 }
 
 func init() {

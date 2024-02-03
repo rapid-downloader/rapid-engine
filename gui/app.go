@@ -34,7 +34,7 @@ func (a *App) startup(ctx context.Context) {
 	wsUrl := fmt.Sprintf("ws://%s%s/ws/%s", host, port, id)
 
 	a.ws = websocket.Connect(ctx, wsUrl)
-	a.ws.Listen(func(msg []byte) {
+	go a.ws.Listen(func(msg []byte) {
 		var progress client.Progress
 		if err := json.Unmarshal(msg, &progress); err != nil {
 			log.Println("error unmarshalling progress bar:", err)

@@ -11,7 +11,6 @@ import (
 	"github.com/rapid-downloader/rapid/client"
 	"github.com/rapid-downloader/rapid/client/websocket"
 	"github.com/rapid-downloader/rapid/env"
-	"github.com/rapid-downloader/rapid/helper"
 )
 
 type rapidClient struct {
@@ -78,7 +77,7 @@ func (r *rapidClient) Fetch(request client.Request) (*client.Download, error) {
 
 	defer res.Body.Close()
 	var result client.Download
-	if err := helper.UnmarshalBody(res, &result); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("error unmarshalling buffer: %s", err)
 	}
 
