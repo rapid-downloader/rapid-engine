@@ -12,16 +12,18 @@ import { ref } from 'vue';
 
 defineProps<{
     title?: string
-    description?: string
+    description?: string,
 }>()
 
 const open = ref(false)
 </script>
 
 <template>
-    <Dialog>
+    <Dialog >
         <DialogTrigger>
-            <slot name="trigger"/>
+            <button>
+                <slot/>
+            </button>
         </DialogTrigger>
         <DialogContent>
             <DialogHeader>
