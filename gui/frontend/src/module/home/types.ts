@@ -7,6 +7,7 @@ export type Sort = 'date' | 'name' | 'size'
 export interface Download {
     id: string
     name: string
+    location: string
     url: string
     provider: string
     size: number

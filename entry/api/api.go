@@ -48,6 +48,7 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 	toDownload := Download{
 		ID:               entry.ID(),
 		Name:             entry.Name(),
+		Location:         entry.Location(),
 		URL:              entry.URL(),
 		Size:             entry.Size(),
 		Type:             entry.Type(),

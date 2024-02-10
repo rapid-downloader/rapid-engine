@@ -90,7 +90,6 @@ const downloadRules = {
 }
 
 const downloadValidation = useVuelidate(downloadRules, downloadForm)
-const button = ref<HTMLButtonElement>()
 
 async function download(e: Event) {
     e.preventDefault()
@@ -103,10 +102,6 @@ async function download(e: Event) {
     if (result.value) {
         await downloader.download(result.value.id)
         emits('fetched', result.value)
-    }
-
-    if (button.value) {
-        button.value.click()
     }
 }
 
@@ -153,12 +148,10 @@ async function download(e: Event) {
                             Cancel
                         </Button>
                     </DialogClose>
-                    <Button :disabled="downloadValidation.$error" type="submit" @click="download">
+                    
+                    <Button :disabled="downloadValidation.$error" type="submit">
                         Download
                     </Button>
-                    <DialogClose>
-                        <button ref="button" hidden />
-                    </DialogClose>
                 </div>
             </div>
         </form>

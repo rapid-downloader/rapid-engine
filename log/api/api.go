@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/rapid-downloader/rapid/api"
@@ -23,17 +22,8 @@ func newService(app *fiber.App) api.Service {
 	}
 }
 
-func today() string {
-	now := time.Now()
-	d := now.Day()
-	m := now.Month()
-	y := now.Year()
-
-	return fmt.Sprintf("%d-%d-%d", d, int(m), y)
-}
-
 func (s *logService) logs(ctx *fiber.Ctx) error {
-	date := ctx.Params("date", today())
+	date := ctx.Params("date")
 	setting := setting.Get()
 
 	path := filepath.Join(setting.DataLocation, "logs", fmt.Sprintf("%s.txt", date))

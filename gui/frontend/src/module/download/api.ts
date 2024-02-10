@@ -28,6 +28,7 @@ export function Downloader(): Downloader {
 
     async function download(id: string) {
         try {
+            
             await http.get(`/gui/download/${id}`)
             
         } catch (error) {

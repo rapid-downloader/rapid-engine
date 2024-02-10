@@ -8,18 +8,21 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog'
+import { useVModel } from '@vueuse/core';
 import { ref } from 'vue';
 
-defineProps<{
+const props = defineProps<{
     title?: string
     description?: string,
+    open?: boolean
 }>()
 
-const open = ref(false)
+const open = useVModel(props, 'open')
+
 </script>
 
 <template>
-    <Dialog >
+    <Dialog v-model:open="open">
         <DialogTrigger>
             <button>
                 <slot/>

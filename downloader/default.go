@@ -53,17 +53,15 @@ func (dl *localDownloader) Download(entry entry.Entry) error {
 
 	chunks := make([]*chunk, entry.ChunkLen())
 	for i := 0; i < entry.ChunkLen(); i++ {
-		wg.Add(1)
-
-		index := i
-		chunks[index] = newChunk(entry, index, dl.setting, &wg)
+		chunks[i] = newChunk(entry, i, dl.setting, &wg)
 
 		if dl.onprogress != nil {
-			chunks[index].onProgress(dl.onprogress)
+			chunks[i].onProgress(dl.onprogress)
 		}
 	}
 
 	for _, chunk := range chunks {
+		wg.Add(1)
 		w.Add(chunk)
 	}
 

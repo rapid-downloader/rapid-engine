@@ -35,7 +35,7 @@ func (s *settingService) updateSetting(ctx *fiber.Ctx) error {
 
 func (s *settingService) CreateRoutes() {
 	s.app.Add("GET", "/settings", s.getSetting)
-	s.app.Add("PUT", "/settings", s.updateSetting)
+	s.app.Add("GET", "/settings", s.updateSetting)
 }
 
 func init() {

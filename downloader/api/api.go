@@ -101,9 +101,9 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 	s.memstore.Delete(entry.ID())
 	channel.Publish(rapidClient.Progress{
 		ID:         entry.ID(),
-		Index:      0,
 		Downloaded: entry.Size(),
 		Size:       entry.Size(),
+		Lenght:     entry.ChunkLen(),
 		Progress:   100,
 		Done:       true,
 	})
@@ -162,9 +162,9 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 	s.memstore.Delete(entry.ID())
 	channel.Publish(rapidClient.Progress{
 		ID:         entry.ID(),
-		Index:      0,
 		Downloaded: entry.Size(),
 		Size:       entry.Size(),
+		Lenght:     entry.ChunkLen(),
 		Progress:   100,
 		Done:       true,
 	})
@@ -224,9 +224,9 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 
 	channel.Publish(rapidClient.Progress{
 		ID:         entry.ID(),
-		Index:      0,
 		Downloaded: entry.Size(),
 		Size:       entry.Size(),
+		Lenght:     entry.ChunkLen(),
 		Progress:   100,
 		Done:       true,
 	})

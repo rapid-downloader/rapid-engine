@@ -46,6 +46,7 @@ type Progress struct {
 	Downloaded int64   `json:"downloaded"`
 	Size       int64   `json:"size"`
 	Progress   float64 `json:"progress"`
+	Lenght     int     `json:"lenght"`
 	Done       bool    `json:"done"`
 }
 

@@ -4,10 +4,10 @@ import Header from '@/components/Header.vue';
 import DownloadList from './components/DownloadList.vue';
 import DownloadListSkeleton from './components/DownloadListSkeleton.vue';
 import { computed, watch, onUnmounted, ref, onMounted } from 'vue';
-import XTooltip from '@/components/ui/tooltip/XTooltip.vue';
+import Tooltip from '@/components/ui/tooltip/XTooltip.vue';
 import Filter from './components/Filter.vue';
 import Entries from './api'
-import XDialog from '@/components/ui/dialog/XDialog.vue';
+import Dialog from '@/components/ui/dialog/XDialog.vue';
 import DownloadDialog from '../download/components/DownloadDialog.vue';
 import { useNow, useTimeout } from '@vueuse/core';
 //@ts-ignore
@@ -54,9 +54,11 @@ onUnmounted(async () => {
     await entries.updateAll(dlentries.value)
 })
 
+const dialogOpen = ref(false)
 async function fetched(result: Download) {
     dlentries.value[result.id] = result
     await entries.update(result)
+    dialogOpen.value = false
 }
 
 const filteredtype = ref<string[]>([])
@@ -85,6 +87,7 @@ interface Progress {
     downloaded: number
     size: number
     progress: number
+    length: number
     done: boolean
 }
 
@@ -93,7 +96,7 @@ const { ready, start } = useTimeout(1000, { controls: true })
 
 async function update(progress: Progress) {
     if (dlentries.value[progress.id].downloadedChunks === undefined) {
-        dlentries.value[progress.id].downloadedChunks = new Array<number>()
+        dlentries.value[progress.id].downloadedChunks = new Array<number>(progress.length)
     }
 
     dlentries.value[progress.id].downloadedChunks[progress.index] = progress.downloaded
@@ -102,7 +105,7 @@ async function update(progress: Progress) {
     const downloadedTotal = dlentries.value[progress.id]
         .downloadedChunks.reduce((total, chunk) => total + chunk)
     
-    // calculate the total downloaded percentage
+    // // calculate the total downloaded percentage
     const size = dlentries.value[progress.id].size
     dlentries.value[progress.id].progress = (downloadedTotal / size) * 100
 
@@ -141,43 +144,41 @@ EventsOn('progress', async (...event: any) => {
 <template>
     <Header>
         <div class="flex gap-3">
-            <x-tooltip text="New Download" location="bottom">
-                <x-dialog title="New Download" description="Provide a link to start a new download">
-                    <template v-slot:trigger>
-                        <Button class="flex gap-2 bg-accent justify-center hover:bg-accent/90">
-                            <i-fluent-add-16-filled class="text-accent-foreground" />
-                        </Button>
-                    </template>
+            <Tooltip text="New Download" location="bottom">
+                <Dialog v-model:open="dialogOpen" title="New Download" description="Provide a link to start a new download">
+                    <Button class="flex gap-2 bg-accent justify-center hover:bg-accent/90">
+                        <i-fluent-add-16-filled class="text-accent-foreground" />
+                    </Button>
 
                     <template v-slot:content>
                         <download-dialog @fetched="fetched" /> 
                     </template>
-                </x-dialog>
-            </x-tooltip>
+                </Dialog>
+            </Tooltip>
 
-            <x-tooltip text="New batch download" location="bottom">
+            <tooltip text="New batch download" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-add-square-multiple-16-filled class="text-accent text-lg group-hover:text-accent-foreground" />
                 </Button>
-            </x-tooltip>
+            </tooltip>
 
-            <x-tooltip text="Resume all" location="bottom">
+            <tooltip text="Resume all" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-play-16-filled class="text-accent group-hover:text-accent-foreground" />
                 </Button>
-            </x-tooltip>
+            </tooltip>
 
-            <x-tooltip text="Pause all" location="bottom">
+            <tooltip text="Pause all" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-pause-16-filled class="text-accent group-hover:text-accent-foreground" />
                 </Button>
-            </x-tooltip>
+            </tooltip>
             
-            <x-tooltip text="Stop all" location="bottom">
+            <tooltip text="Stop all" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-stop-16-filled class="text-accent group-hover:text-accent-foreground" />
                 </Button>    
-            </x-tooltip>
+            </tooltip>
         </div>
     </Header>
 
