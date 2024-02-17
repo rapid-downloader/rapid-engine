@@ -1,10 +1,4 @@
 <script setup lang="ts">
-import Cato from '@/assets/images/cato.svg'
-import { Download, Sort } from '../types'
-import { parseSize, parseDate, statusColor, parseTimeleft } from '@/lib/parse';
-import FileType from './FileType.vue'
-import StatusIcon from './StatusIcon.vue';
-
 import {
     Table,
     TableBody,
@@ -14,13 +8,18 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table'
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import Cato from '@/assets/images/cato.svg'
+import { Download, Sort } from '../types'
+import { parseSize, parseDate, statusColor, parseTimeleft } from '@/lib/parse';
+import FileType from './FileType.vue'
+import StatusIcon from './StatusIcon.vue';
+import { computed, defineComponent, h, markRaw, onMounted, onUnmounted, ref } from 'vue';
 import { useRouteQuery } from '@vueuse/router';
 import { Button } from '@/components/ui/button';
-import Dialog from '@/components/ui/dialog/XDialog.vue';
-import { Actionable } from '@/components/ui/dialog';
 import Confirmation from '@/components/Confirmation.vue';
 import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from '@/components/ui/sonner'
+import { time } from 'console';
 
 const props = defineProps<{
     items: Record<string, Download>,
@@ -109,8 +108,20 @@ onUnmounted(() => {
 })
 
 const wantRemoveFromDisk = ref(false)
-function remove(id: string) {
+const hayo = ref(false)
+function remove(item: Download) {
+    const timeout = 3000
+    toast('Success', { 
+        description: 'What is this', 
+        duration: timeout,
+        type: 'success', 
+        onAutoClose: () => {
+            hayo.value = !hayo.value
+        },
+        id: 'singo',
+    })
 
+    setTimeout(() => emit('delete', item.id), timeout);
 }
 
 </script>
@@ -120,8 +131,8 @@ function remove(id: string) {
         <div v-if="!items || Object.keys(items).length === 0" class="w-fit mx-auto">
             <img :src="Cato" alt="empty" class="mx-auto my-auto w-[20rem] h-[80vh]">
         </div>
-
-        <div ref="container" v-else class="">
+        
+        <div ref="container" v-else >
             <Table  class="min-w-max">
                 <table-caption></table-caption>
                 <table-header>
@@ -170,7 +181,7 @@ function remove(id: string) {
                                 <Confirmation 
                                     title="Delete download" 
                                     :description="`This will delete ${item.name} from the list forever. If this is an on going download, it will be stopped and then deleted. Are you sure?`" 
-                                    :actionable="{ label: 'Delete', type: 'destructive', action: () => remove(item.id) }" >
+                                    :actionable="{ label: 'Delete', type: 'destructive', action: () => remove(item) }" >
                                     <Button size="icon" variant="ghost" class="rounded-full text-destructive hover:bg-destructive hover:text-destructive-foreground w-7 h-7">
                                         <i-fluent:delete-16-regular class="group-hover/action:hidden"/>
                                         <i-fluent:delete-16-filled class="hidden group-hover/action:block"/>

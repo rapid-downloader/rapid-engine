@@ -73,5 +73,13 @@ export default function Entries() {
         }
     }
 
-    return { all, updateAll, update }
+    async function deleteEntry(id: string) {
+        try {
+            await http.delete(`/entries/${id}`)
+        } catch (error) {
+            // TODO: add notification
+        }
+    }
+
+    return { all, updateAll, update, deleteEntry }
 }

@@ -9,10 +9,10 @@ import { Downloader } from '../api'
 import { DialogClose } from 'radix-vue';
 import { Download, Request } from '@/module/home/types';
 import { Progress } from '@/components/ui/progress';
-import FileType from '../../home/components/FileType.vue'
 
 const emits = defineEmits<{
     (e: 'fetched', entry: Download): void
+    (e: 'close'): void
 }>()
 
 const fetchForm = reactive({
@@ -100,9 +100,21 @@ async function download(e: Event) {
     }
     
     if (result.value) {
+        result.value.name = downloadForm.name + ext.value
+
         await downloader.download(result.value.id)
         emits('fetched', result.value)
     }
+}
+
+function back(e: Event) {
+    e.preventDefault()
+    state.value = State.Init
+}
+
+function close(e: Event) {
+    e.preventDefault()
+    emits('close')
 }
 
 </script>
@@ -138,18 +150,17 @@ async function download(e: Event) {
                 </div>
             </div>
 
-            <div class="flex justify-between mt-5 -mb-5">
-                <Button :disabled="downloadValidation.$error" variant="ghost" @click="state = State.Init">
+            <div class="flex justify-between mt-5">
+                <Button :disabled="downloadValidation.$error" variant="ghost" @click="back">
                     <i-radix-icons-arrow-left/>
                 </Button>
+                
                 <div class="flex gap-2">
-                    <DialogClose>
-                        <Button variant="ghost">
-                            Cancel
-                        </Button>
-                    </DialogClose>
+                    <Button variant="ghost" @click="close">
+                        Cancel
+                    </Button>
                     
-                    <Button :disabled="downloadValidation.$error" type="submit">
+                    <Button :disabled="downloadValidation.$error" @click="download">
                         Download
                     </Button>
                 </div>
