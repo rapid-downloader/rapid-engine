@@ -1,13 +1,26 @@
 <script setup lang="ts">
-import { TooltipRoot, type TooltipRootEmits, type TooltipRootProps } from 'radix-vue'
-import { useEmitAsProps } from '@/lib/utils'
+import {
+    TooltipRoot,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger
+} from '@/components/ui/tooltip'
 
-const props = defineProps<TooltipRootProps>()
-const emits = defineEmits<TooltipRootEmits>()
+const props = defineProps<{
+    text: string
+    location?: "top" | "right" | "bottom" | "left"
+}>()
 </script>
 
 <template>
-  <TooltipRoot v-bind="{ ...props, ...useEmitAsProps(emits) }">
-    <slot />
-  </TooltipRoot>
+    <TooltipProvider>
+        <TooltipRoot>
+            <TooltipTrigger as-child>
+                <slot />
+            </TooltipTrigger>
+            <TooltipContent class="rounded border border-muted" avoid-collisions :side="location">
+                <p class="brightness-75">{{ props.text }}</p>
+            </TooltipContent>
+        </TooltipRoot>
+    </TooltipProvider>
 </template>

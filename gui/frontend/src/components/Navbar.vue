@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
-import { Button } from '@/components/ui/button';
 
 import Nav from './Nav.vue';
 

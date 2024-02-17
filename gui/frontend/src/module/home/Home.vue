@@ -4,7 +4,7 @@ import Header from '@/components/Header.vue';
 import DownloadList from './components/DownloadList.vue';
 import DownloadListSkeleton from './components/DownloadListSkeleton.vue';
 import { computed, watch, onUnmounted, ref, onMounted } from 'vue';
-import Tooltip from '@/components/ui/tooltip/XTooltip.vue';
+import { Tooltip } from '@/components/ui/tooltip';
 import Filter from './components/Filter.vue';
 import Entries from './api'
 import Dialog from '@/components/ui/dialog/XDialog.vue';
@@ -151,34 +151,34 @@ EventsOn('progress', async (...event: any) => {
                     </Button>
 
                     <template v-slot:content>
-                        <download-dialog @fetched="fetched" /> 
+                        <download-dialog @fetched="fetched" @close="dialogOpen = false"/> 
                     </template>
                 </Dialog>
             </Tooltip>
 
-            <tooltip text="New batch download" location="bottom">
+            <Tooltip text="New batch download" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-add-square-multiple-16-filled class="text-accent text-lg group-hover:text-accent-foreground" />
                 </Button>
-            </tooltip>
+            </Tooltip>
 
-            <tooltip text="Resume all" location="bottom">
+            <Tooltip text="Resume all" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-play-16-filled class="text-accent group-hover:text-accent-foreground" />
                 </Button>
-            </tooltip>
+            </Tooltip>
 
-            <tooltip text="Pause all" location="bottom">
+            <Tooltip text="Pause all" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-pause-16-filled class="text-accent group-hover:text-accent-foreground" />
                 </Button>
-            </tooltip>
+            </Tooltip>
             
-            <tooltip text="Stop all" location="bottom">
+            <Tooltip text="Stop all" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-stop-16-filled class="text-accent group-hover:text-accent-foreground" />
                 </Button>    
-            </tooltip>
+            </Tooltip>
         </div>
     </Header>
 
@@ -200,6 +200,6 @@ EventsOn('progress', async (...event: any) => {
         </div>
 
         <download-list-skeleton v-if="loading" />
-        <download-list v-else class="w-full" :items="items" @paginate="page++"/>
+        <download-list @delete="id => entries.deleteEntry(id)" v-else class="w-full" :items="items" @paginate="page++"/>
     </div>
 </template>
