@@ -27,7 +27,6 @@ declare module 'vue' {
     DialogHeader: typeof import('./src/components/ui/dialog/DialogHeader.vue')['default']
     DialogTitle: typeof import('./src/components/ui/dialog/DialogTitle.vue')['default']
     DialogTrigger: typeof import('./src/components/ui/dialog/DialogTrigger.vue')['default']
-    Error: typeof import('./src/components/ui/icon/Error.vue')['default']
     H1: typeof import('./src/components/ui/H1.vue')['default']
     H2: typeof import('./src/components/ui/H2.vue')['default']
     H3: typeof import('./src/components/ui/H3.vue')['default']
@@ -47,6 +46,7 @@ declare module 'vue' {
     IFluentAddSquareMultiple16Filled: typeof import('~icons/fluent/add-square-multiple16-filled')['default']
     IFluentArrowLeft16Regular: typeof import('~icons/fluent/arrow-left16-regular')['default']
     IFluentArrowRight16Regular: typeof import('~icons/fluent/arrow-right16-regular')['default']
+    IFluentArrowSync20Filled: typeof import('~icons/fluent/arrow-sync20-filled')['default']
     IFluentBug16Regular: typeof import('~icons/fluent/bug16-regular')['default']
     IFluentCheckmark16Filled: typeof import('~icons/fluent/checkmark16-filled')['default']
     IFluentCheckmarkCircle16Filled: typeof import('~icons/fluent/checkmark-circle16-filled')['default']
@@ -113,7 +113,6 @@ declare module 'vue' {
     Separator: typeof import('./src/components/ui/separator/Separator.vue')['default']
     Skeleton: typeof import('./src/components/ui/skeleton/Skeleton.vue')['default']
     Sonner: typeof import('./src/components/ui/sonner/Sonner.vue')['default']
-    Success: typeof import('./src/components/ui/icon/Success.vue')['default']
     Table: typeof import('./src/components/ui/table/Table.vue')['default']
     TableBody: typeof import('./src/components/ui/table/TableBody.vue')['default']
     TableCaption: typeof import('./src/components/ui/table/TableCaption.vue')['default']
@@ -129,6 +128,7 @@ declare module 'vue' {
     TooltipProvider: typeof import('./src/components/ui/tooltip/TooltipProvider.vue')['default']
     TooltipRoot: typeof import('./src/components/ui/tooltip/TooltipRoot.vue')['default']
     TooltipTrigger: typeof import('./src/components/ui/tooltip/TooltipTrigger.vue')['default']
+    Undo: typeof import('./src/components/ui/icon/Undo.vue')['default']
     XDialog: typeof import('./src/components/ui/dialog/XDialog.vue')['default']
   }
 }

@@ -14,3 +14,9 @@ import { Toaster } from '@/components/ui/sonner'
         </div>
     </div>
 </template>
+
+<style>
+.singo {
+    color: red;
+}
+</style>

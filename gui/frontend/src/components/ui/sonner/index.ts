@@ -28,7 +28,7 @@ export const toastVariants = cva('', {
     },
 })
 
-export type ToastOption = Omit<ExternalToast, 'invert' | 'icon' | 'important' | 'style' | 'unstyled' | 'descriptionClassName' | 'className' | 'promise' | 'action' > & {
+export type ToastOption = Omit<ExternalToast, 'invert' | 'icon' | 'important' | 'style' | 'unstyled' | 'descriptionClassName' | 'className' | 'promise' > & {
     type?: NonNullable<Parameters<typeof toastVariants>[0]>['text']
     action?: {
         label?: string,

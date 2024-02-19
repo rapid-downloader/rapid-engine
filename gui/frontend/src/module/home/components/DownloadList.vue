@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import Confirmation from '@/components/Confirmation.vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from '@/components/ui/sonner'
-import { time } from 'console';
+import Undo from '@/components/ui/icon/Undo.vue'
 
 const props = defineProps<{
     items: Record<string, Download>,
@@ -108,17 +108,20 @@ onUnmounted(() => {
 })
 
 const wantRemoveFromDisk = ref(false)
-const hayo = ref(false)
 function remove(item: Download) {
-    const timeout = 3000
+    const timeout = 5000
     toast('Success', { 
-        description: 'What is this', 
+        description: `${item.name} successfully deleted`, 
         duration: timeout,
         type: 'success', 
         onAutoClose: () => {
-            hayo.value = !hayo.value
+            // TODO: delete 
         },
-        id: 'singo',
+        action: {
+            label: 'Undo',
+            icon: Undo,
+            onClick: () => {}
+        },
     })
 
     setTimeout(() => emit('delete', item.id), timeout);

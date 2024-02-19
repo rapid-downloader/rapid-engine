@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { toast } from 'vue-sonner';
 import { ToastProps, toastVariants } from '.';
 import { Button } from '../button';
-
-
+import { Tooltip } from '../tooltip';
+import { Progress } from '../progress';
 
 const props = defineProps<ToastProps>()
+const emit = defineEmits<{
+    (e: 'closeToast'): void
+}>()
 
 function dismiss() {
     if (props.onDismiss) props.onDismiss({ id: props.id! })
-    toast.dismiss(props.id)
+    emit('closeToast')
 }
 
 function click() {
     if (props.action) props.action.onClick()
-    toast.dismiss(props.id)
+    emit('closeToast')
 }
 
 </script>
@@ -31,7 +33,14 @@ function click() {
             <p class="text-xs text-foreground/50</p>">{{ description }}</p>
         </div>
 
-        <Button v-if="action" size="sm" @click="click" :class="`ml-auto ${action.icon ? 'aspect-square' : ''}`">
+        <Tooltip v-if="action && action.icon" :text="action.label" location="left">
+            <Button size="sm" @click="click" :class="`ml-auto ${action.icon ? 'aspect-square' : ''}`">
+                <component v-if="action.icon" :is="action.icon" />
+                <p v-else-if="action.label" class="text-xs">{{ action.label }}</p>
+            </Button>
+        </Tooltip>
+
+        <Button v-else-if="action" size="sm" @click="click" :class="`ml-auto ${action.icon ? 'aspect-square' : ''}`">
             <component v-if="action.icon" :is="action.icon" />
             <p v-else-if="action.label" class="text-xs">{{ action.label }}</p>
         </Button>
