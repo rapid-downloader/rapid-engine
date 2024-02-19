@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+Actionable,
     Dialog,
     DialogContent,
     DialogDescription,
@@ -8,20 +9,27 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog'
-import { ref } from 'vue';
+import { useVModel } from '@vueuse/core';
+import { Button } from '../button';
+import { DialogClose } from 'radix-vue';
 
-defineProps<{
+const props = defineProps<{
     title?: string
-    description?: string
+    description?: string,
+    open?: boolean
+    action?: Actionable
 }>()
 
-const open = ref(false)
+const open = useVModel(props, 'open')
+
 </script>
 
 <template>
-    <Dialog>
+    <Dialog v-model:open="open">
         <DialogTrigger>
-            <slot name="trigger"/>
+            <button>
+                <slot/>
+            </button>
         </DialogTrigger>
         <DialogContent>
             <DialogHeader>
@@ -31,11 +39,17 @@ const open = ref(false)
                 </DialogDescription>
             </DialogHeader>
 
-            <slot name="content" />
-            
-            <DialogFooter>
-                <slot name="footer" />
-            </DialogFooter>
+            <slot name="content" >
+                <div class="flex gap-2 justify-end">
+                    <DialogClose>
+                        <Button variant="ghost">Cancel</Button>
+                    </DialogClose>
+                    <DialogClose v-if="props.action && props.action.immediatelyClose">
+                        <Button v-if="props.action" :variant="props.action.type" @click="props.action!.action">{{ props.action.label }}</Button>
+                    </DialogClose>
+                    <Button v-else-if="props.action && !props.action.immediatelyClose" :variant="props.action.type" @click="props.action!.action">{{ props.action.label }}</Button>
+                </div>
+            </slot>
         </DialogContent>
     </Dialog>
 </template>

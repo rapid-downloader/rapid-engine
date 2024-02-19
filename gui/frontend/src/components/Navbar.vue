@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
-import { Button } from '@/components/ui/button';
 
 import Nav from './Nav.vue';
 
@@ -8,7 +7,7 @@ const route = useRoute()
 </script>
 
 <template>
-    <div class="flex my-1 ml-1">
+    <div class="flex">
         <div class="bg-background flex flex-col">
             <Nav to="/" tooltip="Downloads">
                 <i-fluent-document-multiple-16-regular

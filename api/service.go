@@ -8,26 +8,28 @@ import (
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/rapid-downloader/rapid/env"
 )
 
 type (
-	Initter interface {
-		Init() error
-	}
-
-	Closer interface {
-		Close() error
+	App interface {
+		Run()
+		Shutdown()
 	}
 
 	Service interface {
-		Routes() []Route
+		CreateRoutes()
 	}
 
-	Route struct {
-		Method  string
-		Path    string
-		Handler func(ctx *fiber.Ctx) error
+	ServiceInitter interface {
+		Init() error
 	}
+
+	ServiceCloser interface {
+		Close() error
+	}
+
+	ServiceFactory func(app *fiber.App) Service
 
 	Socket struct {
 		Path    string
@@ -35,12 +37,10 @@ type (
 		Handler func(c *websocket.Conn)
 	}
 
-	serviceRunner struct {
+	service struct {
 		services []Service
 		app      *fiber.App
 	}
-
-	ServiceFactory func() Service
 )
 
 var services = make([]ServiceFactory, 0)
@@ -49,35 +49,33 @@ func RegisterService(s ServiceFactory) {
 	services = append(services, s)
 }
 
-func Create(app *fiber.App) serviceRunner {
+func Create(app *fiber.App) App {
 	svcs := make([]Service, 0)
 
 	for _, service := range services {
-		svcs = append(svcs, service())
+		svcs = append(svcs, service(app))
 	}
 
-	return serviceRunner{
+	return &service{
 		app:      app,
 		services: svcs,
 	}
 }
 
-func (s *serviceRunner) Run() {
+func (s *service) Run() {
 	for _, service := range s.services {
-		if init, ok := service.(Initter); ok {
+		if init, ok := service.(ServiceInitter); ok {
 			if err := init.Init(); err != nil {
 				log.Fatal(err)
 			}
 		}
 
 		// create the service
-		for _, route := range service.Routes() {
-			s.app.Add(route.Method, route.Path, route.Handler)
-		}
+		service.CreateRoutes()
 	}
 }
 
-func (s *serviceRunner) Shutdown() {
+func (s *service) Shutdown() {
 	signals := []os.Signal{syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGSTOP, os.Interrupt}
 	ch := make(chan os.Signal, 1)
 
@@ -90,7 +88,7 @@ func (s *serviceRunner) Shutdown() {
 		defer s.app.Shutdown()
 
 		for _, service := range s.services {
-			if closer, ok := service.(Closer); ok {
+			if closer, ok := service.(ServiceCloser); ok {
 				if err := closer.Close(); err != nil {
 					log.Fatal(err)
 				}
@@ -101,4 +99,10 @@ func (s *serviceRunner) Shutdown() {
 			channel.Close()
 		}
 	}()
+
+	port := env.Get("API_PORT").String(":9999")
+
+	if err := s.app.Listen(port); err != nil {
+		log.Fatal(err)
+	}
 }

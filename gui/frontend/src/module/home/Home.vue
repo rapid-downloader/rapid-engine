@@ -2,16 +2,17 @@
 import { Button } from '@/components/ui/button'
 import Header from '@/components/Header.vue';
 import DownloadList from './components/DownloadList.vue';
-import { computed, watch, onUnmounted, ref } from 'vue';
-import XTooltip from '@/components/ui/tooltip/XTooltip.vue';
+import DownloadListSkeleton from './components/DownloadListSkeleton.vue';
+import { computed, watch, onUnmounted, ref, onMounted } from 'vue';
+import { Tooltip } from '@/components/ui/tooltip';
 import Filter from './components/Filter.vue';
 import Entries from './api'
-import XDialog from '@/components/ui/dialog/XDialog.vue';
+import Dialog from '@/components/ui/dialog/XDialog.vue';
 import DownloadDialog from '../download/components/DownloadDialog.vue';
 import { useNow, useTimeout } from '@vueuse/core';
 //@ts-ignore
 import { EventsOn } from '@/../wailsjs/runtime'
-import { client } from 'wailsjs/go/models'
+import { Download } from './types';
 
 const types = [
     { value: 'Document', label: 'Document' },
@@ -29,23 +30,35 @@ const statuses = [
     { value: 'Completed', label: 'Completed' },
 ]
 
-const dlentries = ref<Record<string, client.Download>>({})
+const loading = ref(true)
+const dlentries = ref<Record<string, Download>>({})
 
 const entries = Entries()
 
-async function init() {
-    dlentries.value = await entries.all()
-}
+const page = ref(1)
+onMounted(async () => {
+    dlentries.value = await entries.all(page.value)
+    loading.value = false
+})
 
-init()
+watch(page, async p => {
+    const nextEntries = await entries.all(p)
+
+    dlentries.value = {
+        ...dlentries.value,
+        ...nextEntries,
+    }
+})
 
 onUnmounted(async () => {
     await entries.updateAll(dlentries.value)
 })
 
-async function fetched(result: client.Download) {
+const dialogOpen = ref(false)
+async function fetched(result: Download) {
     dlentries.value[result.id] = result
     await entries.update(result)
+    dialogOpen.value = false
 }
 
 const filteredtype = ref<string[]>([])
@@ -74,6 +87,7 @@ interface Progress {
     downloaded: number
     size: number
     progress: number
+    length: number
     done: boolean
 }
 
@@ -82,7 +96,7 @@ const { ready, start } = useTimeout(1000, { controls: true })
 
 async function update(progress: Progress) {
     if (dlentries.value[progress.id].downloadedChunks === undefined) {
-        dlentries.value[progress.id].downloadedChunks = new Array<number>()
+        dlentries.value[progress.id].downloadedChunks = new Array<number>(progress.length)
     }
 
     dlentries.value[progress.id].downloadedChunks[progress.index] = progress.downloaded
@@ -91,7 +105,7 @@ async function update(progress: Progress) {
     const downloadedTotal = dlentries.value[progress.id]
         .downloadedChunks.reduce((total, chunk) => total + chunk)
     
-    // calculate the total downloaded percentage
+    // // calculate the total downloaded percentage
     const size = dlentries.value[progress.id].size
     dlentries.value[progress.id].progress = (downloadedTotal / size) * 100
 
@@ -130,43 +144,41 @@ EventsOn('progress', async (...event: any) => {
 <template>
     <Header>
         <div class="flex gap-3">
-            <x-tooltip text="New Download" location="bottom">
-                <x-dialog title="New Download" description="Provide a link to start a new download">
-                    <template v-slot:trigger>
-                        <Button class="flex gap-2 bg-accent justify-center hover:bg-accent/90">
-                            <i-fluent-add-16-filled class="text-accent-foreground" />
-                        </Button>
-                    </template>
+            <Tooltip text="New Download" location="bottom">
+                <Dialog v-model:open="dialogOpen" title="New Download" description="Provide a link to start a new download">
+                    <Button class="flex gap-2 bg-accent justify-center hover:bg-accent/90">
+                        <i-fluent-add-16-filled class="text-accent-foreground" />
+                    </Button>
 
                     <template v-slot:content>
-                        <download-dialog @fetched="fetched" /> 
+                        <download-dialog @fetched="fetched" @close="dialogOpen = false"/> 
                     </template>
-                </x-dialog>
-            </x-tooltip>
+                </Dialog>
+            </Tooltip>
 
-            <x-tooltip text="New batch download" location="bottom">
+            <Tooltip text="New batch download" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-add-square-multiple-16-filled class="text-accent text-lg group-hover:text-accent-foreground" />
                 </Button>
-            </x-tooltip>
+            </Tooltip>
 
-            <x-tooltip text="Resume all" location="bottom">
+            <Tooltip text="Resume all" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-play-16-filled class="text-accent group-hover:text-accent-foreground" />
                 </Button>
-            </x-tooltip>
+            </Tooltip>
 
-            <x-tooltip text="Pause all" location="bottom">
+            <Tooltip text="Pause all" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-pause-16-filled class="text-accent group-hover:text-accent-foreground" />
                 </Button>
-            </x-tooltip>
+            </Tooltip>
             
-            <x-tooltip text="Stop all" location="bottom">
+            <Tooltip text="Stop all" location="bottom">
                 <Button class="flex gap-2 border border-accent group hover:bg-accent" variant="outline">
                     <i-fluent-stop-16-filled class="text-accent group-hover:text-accent-foreground" />
                 </Button>    
-            </x-tooltip>
+            </Tooltip>
         </div>
     </Header>
 
@@ -187,6 +199,7 @@ EventsOn('progress', async (...event: any) => {
             </Filter>
         </div>
 
-        <download-list class="w-full" :items="items"/>
+        <download-list-skeleton v-if="loading" />
+        <download-list @delete="id => entries.deleteEntry(id)" v-else class="w-full" :items="items" @paginate="page++"/>
     </div>
 </template>

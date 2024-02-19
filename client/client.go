@@ -46,25 +46,8 @@ type Progress struct {
 	Downloaded int64   `json:"downloaded"`
 	Size       int64   `json:"size"`
 	Progress   float64 `json:"progress"`
+	Lenght     int     `json:"lenght"`
 	Done       bool    `json:"done"`
 }
 
 type OnProgress = func(progress Progress, err error)
-
-type Rapid interface {
-	// will return the download progress for each chunk.
-	// if error happens during the way, the progress will contains zero value for each properties
-	// and the caller should return the error and end the callback
-	Listen(progress OnProgress)
-
-	Fetch(req Request) (*Download, error)
-	Download(id string) error
-	Resume(id string) error
-	Restart(id string) error
-	Stop(id string) error
-	Pause(id string) error
-}
-
-type RapidCloser interface {
-	Close() error
-}

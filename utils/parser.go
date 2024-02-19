@@ -1,4 +1,4 @@
-package env
+package utils
 
 import (
 	"strconv"
@@ -17,7 +17,7 @@ type parser struct {
 	value string
 }
 
-func parse(str string) Parser {
+func Parse(str string) Parser {
 	return &parser{str}
 }
 

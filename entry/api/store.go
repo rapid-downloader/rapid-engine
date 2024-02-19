@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	logger "log"
 
 	"github.com/rapid-downloader/rapid/log"
 
@@ -11,7 +12,7 @@ import (
 
 type Store interface {
 	Get(id string) *Download
-	GetAll() []Download
+	GetAll(page, limit int) []Download
 	Create(id string, val Download) error
 	CreateBatch(id []string, entries []Download) error
 	Update(id string, val UpdateDownload) error
@@ -60,7 +61,7 @@ func (s *store) Get(id string) *Download {
 	return &out
 }
 
-func (s *store) GetAll() []Download {
+func (s *store) GetAll(page, limit int) []Download {
 	var entries []Download
 
 	err := s.db.Batch(func(tx *bbolt.Tx) error {
@@ -69,7 +70,24 @@ func (s *store) GetAll() []Download {
 			return fmt.Errorf("error creating bucket on GetAll:%s", err.Error())
 		}
 
-		return bucket.ForEach(func(k, v []byte) error {
+		i := 0
+
+		start := (page - 1) * limit
+		end := start + limit
+
+		cursor := bucket.Cursor()
+		logger.Println(start, end, bucket.Stats().KeyN)
+
+		for k, v := cursor.Last(); k != nil; k, v = cursor.Prev() {
+			i++
+			if i < start {
+				continue
+			}
+
+			if i == end {
+				break
+			}
+
 			var entry Download
 			if err := json.Unmarshal(v, &entry); err != nil {
 				return fmt.Errorf("error fetching from bucket on get all:%s", err.Error())
@@ -77,9 +95,9 @@ func (s *store) GetAll() []Download {
 
 			entry.ID = string(k)
 			entries = append(entries, entry)
-			return nil
-		})
+		}
 
+		return nil
 	})
 
 	if err != nil {

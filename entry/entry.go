@@ -2,10 +2,11 @@ package entry
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"path/filepath"
+	"time"
 
-	"github.com/rapid-downloader/rapid/helper"
 	"github.com/rapid-downloader/rapid/log"
 	"github.com/rapid-downloader/rapid/setting"
 )
@@ -82,6 +83,10 @@ func UseDownloader(provider string) Options {
 	}
 }
 
+func id() string {
+	return fmt.Sprint(time.Now().Unix())
+}
+
 func Fetch(url string, options ...Options) (Entry, error) {
 	opt := &option{
 		setting: setting.Get(),
@@ -136,7 +141,7 @@ func Fetch(url string, options ...Options) (Entry, error) {
 	}
 
 	entry := &entry{
-		Id:                helper.ID(10),
+		Id:                id(),
 		Name_:             filename,
 		Location_:         location,
 		Filetype_:         filetype,

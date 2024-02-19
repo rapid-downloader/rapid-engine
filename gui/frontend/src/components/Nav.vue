@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
 import { Button } from '@/components/ui/button';
-import XTooltip from './ui/tooltip/XTooltip.vue';
+import { Tooltip } from './ui/tooltip';
 
 const route = useRoute()
 
@@ -13,10 +13,10 @@ const props = defineProps<{
 
 <template>
     <router-link :to="props.to">
-        <x-tooltip :text="props.tooltip" location="right">
+        <Tooltip :text="props.tooltip" location="right">
             <Button :class="`group shadow-none bg-background py-5 px-2 m-0.5 ${route.path === props.to ? 'bg-background brightness-150 hover:bg-background hover:brightness-150' : ''}`">
                 <slot />
             </Button>
-        </x-tooltip>
+        </Tooltip>
     </router-link>
 </template>

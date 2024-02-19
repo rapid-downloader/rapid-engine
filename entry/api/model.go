@@ -31,6 +31,7 @@ type (
 	Download struct {
 		ID               string    `json:"id"`
 		Name             string    `json:"name"`
+		Location         string    `json:"location"`
 		URL              string    `json:"url"`
 		Provider         string    `json:"provider"`
 		Size             int64     `json:"size"`

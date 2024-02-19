@@ -61,7 +61,7 @@ func main() {
 	signal.Notify(interrupt, []os.Signal{syscall.SIGINT, syscall.SIGKILL, syscall.SIGTERM, syscall.SIGSTOP, os.Interrupt}...)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	rapid, err := client.New(ctx, helper.ID(5))
+	rapid, err := NewRapid(ctx, helper.Id(5))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,7 +92,7 @@ func main() {
 	for {
 		select {
 		case <-ctx.Done():
-			close(rapid)
+			rapid.Close()
 			return
 		case <-interrupt:
 			stop(rapid)
@@ -101,18 +101,12 @@ func main() {
 	}
 }
 
-func close(rapid client.Rapid) {
-	if closer, ok := rapid.(client.RapidCloser); ok {
-		closer.Close()
-	}
-}
-
-func stop(rapid client.Rapid) {
+func stop(rapid *rapidClient) {
 	entry, ok := loadStored()
 	if !ok {
 		return
 	}
 
 	rapid.Stop(entry.ID)
-	close(rapid)
+	rapid.Close()
 }

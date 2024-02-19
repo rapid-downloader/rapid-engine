@@ -65,6 +65,7 @@ func (ws *wsClient) Listen(callback ListenFunc) {
 	for {
 		select {
 		case <-ws.ctx.Done():
+			ws.close()
 			return
 		case <-ticker.C:
 			for {

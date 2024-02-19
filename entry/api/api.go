@@ -8,6 +8,8 @@ import (
 	"github.com/rapid-downloader/rapid/db"
 	"github.com/rapid-downloader/rapid/entry"
 	response "github.com/rapid-downloader/rapid/helper"
+	"github.com/rapid-downloader/rapid/setting"
+	"github.com/rapid-downloader/rapid/utils"
 )
 
 const (
@@ -16,12 +18,14 @@ const (
 )
 
 type entryService struct {
+	app     *fiber.App
 	channel api.Channel
 	store   Store
 }
 
-func newService() api.Service {
+func newService(app *fiber.App) api.Service {
 	return &entryService{
+		app:     app,
 		channel: api.CreateChannel("memstore"),
 		store:   NewStore("download", db.DB()),
 	}
@@ -31,12 +35,12 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 	var req request
 
 	if err := ctx.BodyParser(&req); err != nil {
-		return response.Error(ctx, err.Error())
+		return response.BadRequest(ctx, err)
 	}
 
 	entry, err := entry.Fetch(req.Url, req.toOptions()...)
 	if err != nil {
-		return response.Error(ctx, err.Error())
+		return response.BadRequest(ctx, err)
 	}
 
 	s.channel.Publish(entry)
@@ -44,6 +48,7 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 	toDownload := Download{
 		ID:               entry.ID(),
 		Name:             entry.Name(),
+		Location:         entry.Location(),
 		URL:              entry.URL(),
 		Size:             entry.Size(),
 		Type:             entry.Type(),
@@ -59,29 +64,32 @@ func (s *entryService) fetch(ctx *fiber.Ctx) error {
 	}
 
 	if err := s.store.Create(entry.ID(), toDownload); err != nil {
-		return response.InternalServerError(ctx, err.Error())
+		return response.InternalServerError(ctx, err)
 	}
 
-	return response.Success(ctx, toDownload)
+	return response.Ok(ctx, toDownload)
 }
 
 func (s *entryService) getEntry(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	res := s.store.Get(id)
 	if res == nil {
-		return response.NotFound(ctx)
+		return response.Success(ctx, fiber.StatusNoContent)
 	}
 
-	return response.Success(ctx, res)
+	return response.Ok(ctx, res)
 }
 
 func (s *entryService) getAllEntry(ctx *fiber.Ctx) error {
-	res := s.store.GetAll()
+	setting := setting.Get()
+	page := utils.Parse(ctx.Query("page")).Int(1)
+
+	res := s.store.GetAll(page, setting.DisplayedEntriesCount)
 	if res == nil {
-		return response.NotFound(ctx)
+		return response.Success(ctx, fiber.StatusNoContent)
 	}
 
-	return response.Success(ctx, res)
+	return response.Ok(ctx, res)
 }
 
 func (s *entryService) updateEntry(ctx *fiber.Ctx) error {
@@ -89,72 +97,47 @@ func (s *entryService) updateEntry(ctx *fiber.Ctx) error {
 
 	var payload UpdateDownload
 	if err := ctx.BodyParser(&payload); err != nil {
-		return response.Error(ctx, err.Error())
+		return response.BadRequest(ctx, err)
 	}
 
 	if err := s.store.Update(id, payload); err != nil {
-		return response.Error(ctx, err.Error())
+		return response.BadRequest(ctx, err)
 	}
 
-	return response.Success(ctx)
+	return response.Ok(ctx)
 }
 
 func (s *entryService) updateAllEntry(ctx *fiber.Ctx) error {
 	var payload BatchUpdateDownload
 	if err := ctx.BodyParser(&payload); err != nil {
-		return response.Error(ctx, err.Error())
+		return response.BadRequest(ctx, err)
 	}
 
 	if err := s.store.BatchUpdate(payload.IDs, payload.Payload); err != nil {
-		return response.Error(ctx, err.Error())
+		return response.BadRequest(ctx, err)
 	}
 
-	return response.Success(ctx)
+	return response.Ok(ctx)
 }
 
 func (s *entryService) deleteEntry(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 
 	if err := s.store.Delete(id); err != nil {
-		return response.NotFound(ctx)
+		return response.Success(ctx, fiber.StatusNoContent)
 	}
 
-	return response.Success(ctx)
+	return response.Ok(ctx)
 }
 
-func (s *entryService) Routes() []api.Route {
-	return []api.Route{
-		{
-			Path:    "/fetch",
-			Method:  "POST",
-			Handler: s.fetch,
-		},
-		{
-			Path:    "/entries/:id",
-			Method:  "GET",
-			Handler: s.getEntry,
-		},
-		{
-			Path:    "/entries",
-			Method:  "GET",
-			Handler: s.getAllEntry,
-		},
-		{
-			Path:    "/entries/:id",
-			Method:  "PUT",
-			Handler: s.updateEntry,
-		},
-		{
-			Path:    "/entries",
-			Method:  "PUT",
-			Handler: s.updateAllEntry,
-		},
-		{
-			Path:    "/entries/:id",
-			Method:  "DELETE",
-			Handler: s.deleteEntry,
-		},
-	}
+func (s *entryService) CreateRoutes() {
+	s.app.Add("POST", "/fetch", s.fetch)
+
+	s.app.Add("GET", "/entries/:id", s.getEntry)
+	s.app.Add("GET", "/entries", s.getAllEntry)
+	s.app.Add("PUT", "/entries/:id", s.updateEntry)
+	s.app.Add("PUT", "/entries", s.updateAllEntry)
+	s.app.Add("DELETE", "/entries/:id", s.deleteEntry)
 }
 
 func init() {

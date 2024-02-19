@@ -20,6 +20,7 @@ type progress struct {
 	entry      entry.Entry
 	onprogress OnProgress
 	reader     io.ReadCloser
+	chunkLen   int
 	index      int
 	downloaded int64
 	progress   float64
@@ -32,7 +33,7 @@ func (r *progress) Read(payload []byte) (n int, err error) {
 		return n, err
 	}
 
-	r.downloaded += int64(n)
+	r.downloaded = r.downloaded + int64(n)
 	r.progress = float64(float64(100*r.downloaded) / float64(r.chunkSize))
 
 	if r.onprogress != nil {
@@ -42,6 +43,7 @@ func (r *progress) Read(payload []byte) (n int, err error) {
 				Index:      r.index,
 				Downloaded: r.downloaded,
 				Size:       r.chunkSize,
+				Lenght:     r.chunkLen,
 				Progress:   r.progress,
 				Done:       false,
 			},
@@ -141,6 +143,7 @@ func (c *chunk) download(ctx context.Context) error {
 		client.Progress{
 			ID:         c.entry.ID(),
 			Index:      c.index,
+			Lenght:     c.entry.ChunkLen(),
 			Downloaded: n,
 			Size:       c.size,
 			Progress:   float64(100 * n / c.size),
@@ -205,6 +208,7 @@ func (c *chunk) getDownloadFile(ctx context.Context) (io.ReadCloser, error) {
 		reader:     res.Body,
 		entry:      c.entry,
 		index:      c.index,
+		chunkLen:   c.entry.ChunkLen(),
 		downloaded: 0,
 		progress:   0,
 		chunkSize:  c.size,

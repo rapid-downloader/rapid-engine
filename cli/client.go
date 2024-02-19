@@ -1,4 +1,4 @@
-package client
+package main
 
 import (
 	"bytes"
@@ -8,9 +8,9 @@ import (
 
 	"github.com/goccy/go-json"
 
+	"github.com/rapid-downloader/rapid/client"
 	"github.com/rapid-downloader/rapid/client/websocket"
 	"github.com/rapid-downloader/rapid/env"
-	"github.com/rapid-downloader/rapid/helper"
 )
 
 type rapidClient struct {
@@ -22,7 +22,7 @@ type rapidClient struct {
 	cancel context.CancelFunc
 }
 
-func New(ctx context.Context, id string) (Rapid, error) {
+func NewRapid(ctx context.Context, id string) (*rapidClient, error) {
 	host := env.Get("API_HOST").String("localhost")
 	port := env.Get("API_PORT").String(":9999")
 
@@ -43,11 +43,11 @@ func New(ctx context.Context, id string) (Rapid, error) {
 
 }
 
-func (r *rapidClient) Listen(progressbar OnProgress) {
+func (r *rapidClient) Listen(progressbar client.OnProgress) {
 	r.ws.Listen(func(msg []byte) {
-		var progress Progress
+		var progress client.Progress
 		if err := json.Unmarshal(msg, &progress); err != nil {
-			progressbar(Progress{}, err)
+			progressbar(client.Progress{}, err)
 			return
 		}
 
@@ -55,7 +55,7 @@ func (r *rapidClient) Listen(progressbar OnProgress) {
 	})
 }
 
-func (r *rapidClient) Fetch(request Request) (*Download, error) {
+func (r *rapidClient) Fetch(request client.Request) (*client.Download, error) {
 	fetch := fmt.Sprintf("%s/fetch", r.url)
 
 	payload, err := json.Marshal(request)
@@ -76,9 +76,8 @@ func (r *rapidClient) Fetch(request Request) (*Download, error) {
 	}
 
 	defer res.Body.Close()
-	var result Download
-	// TODO: check if this is working or not
-	if err := helper.UnmarshalBody(res, &result); err != nil {
+	var result client.Download
+	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("error unmarshalling buffer: %s", err)
 	}
 
@@ -103,49 +102,16 @@ func (r *rapidClient) Download(id string) error {
 	return nil
 }
 
-func (r *rapidClient) Resume(id string) error {
-	return r.docontinue("resume", id)
-}
-
-func (r *rapidClient) Restart(id string) error {
-	return r.docontinue("restart", id)
-}
-
-func (r *rapidClient) docontinue(t, id string) error {
-	resume := fmt.Sprintf("%s/%s/%s/%s", r.url, r.id, t, id)
-
-	req, err := http.NewRequest("PUT", resume, nil)
-	if err != nil {
-		return fmt.Errorf("error preparing %s request: %s", t, err)
-	}
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("error %sing download: %s", t, err)
-	}
-
-	return res.Body.Close()
-}
-
 func (r *rapidClient) Stop(id string) error {
-	return r.stop("stop", id)
-}
-
-func (r *rapidClient) Pause(id string) error {
-	return r.stop("pause", id)
-}
-
-func (r *rapidClient) stop(t string, id string) error {
-	stop := fmt.Sprintf("%s/%s/%s", r.url, t, id)
-
+	stop := fmt.Sprintf("%s/stop/%s", r.url, id)
 	req, err := http.NewRequest("PUT", stop, nil)
 	if err != nil {
-		return fmt.Errorf("error preparing %s request: %s", t, err)
+		return fmt.Errorf("error preparing stop request: %s", err)
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("error %sing download: %s", t, err)
+		return fmt.Errorf("error stoping download: %s", err)
 	}
 
 	return res.Body.Close()

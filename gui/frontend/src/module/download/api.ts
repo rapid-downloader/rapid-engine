@@ -1,20 +1,19 @@
 import { Http } from "@/composable"
 import { isAxiosError } from "axios"
-import { client } from '@/../wailsjs/go/models'
-import { Fetch, Download } from '@/../wailsjs/go/main/App'
+import { Download, Request } from "../home/types"
 
 export interface Downloader {
-    fetch(req: client.Request): Promise<client.Download | undefined>
-    download(id: string): Promise<boolean>
+    fetch(req: Request): Promise<Download | undefined>
+    download(id: string): void
 }
 
-export function HttpDownloader(): Downloader {
+export function Downloader(): Downloader {
 
     const http = Http()
 
-    async function fetch(req: client.Request): Promise<client.Download | undefined> {
+    async function fetch(req: Request): Promise<Download | undefined> {
         try {
-            const res = await http.post<client.Download>('/fetch', req)
+            const res = await http.post<Download>('/fetch', req)
             if (res.status === 200) {
                 return res.data
             }
@@ -27,10 +26,10 @@ export function HttpDownloader(): Downloader {
         }
     }
 
-    async function download(id: string): Promise<boolean> {
+    async function download(id: string) {
         try {
-            const res = await http.get(`/gui/download/${id}`)
-            return res.status === 200
+            
+            await http.get(`/gui/download/${id}`)
             
         } catch (error) {
             if (isAxiosError(error)) {
@@ -43,35 +42,4 @@ export function HttpDownloader(): Downloader {
     }
 
     return { fetch, download }
-}
-
-export function BindingDownloader(): Downloader {
-
-    async function fetch(req: client.Request): Promise<client.Download | undefined> {
-        try {
-            return await Fetch(req)
-        } catch (error) {
-            console.error(error)
-        }
-    }
-
-
-    async function download(id: string): Promise<boolean> {
-        try {
-            await Download(id)
-            return true
-        } catch (error) {
-            console.log(error);
-            return false
-        }
-    }
-
-    return {
-        fetch,
-        download
-    }
-}
-
-export default function useDownloader(provider: 'http' | 'binding'): Downloader {
-    return provider === 'http' ? HttpDownloader() : BindingDownloader()
 }

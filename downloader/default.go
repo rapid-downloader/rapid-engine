@@ -41,7 +41,7 @@ func (dl *localDownloader) Download(entry entry.Entry) error {
 		return errUrlExpired
 	}
 
-	w, err := worker.New(entry.Context(), entry.ChunkLen(), entry.ChunkLen())
+	w, err := worker.New(entry.Context(), dl.setting.MaxChunkCount, entry.ChunkLen())
 	if err != nil {
 		log.Println("error creating worker", err.Error())
 		return err
@@ -102,7 +102,7 @@ func (dl *localDownloader) Resume(entry entry.Entry) error {
 		return dl.Download(entry)
 	}
 
-	worker, err := worker.New(entry.Context(), entry.ChunkLen(), entry.ChunkLen())
+	worker, err := worker.New(entry.Context(), dl.setting.MaxChunkCount, entry.ChunkLen())
 	if err != nil {
 		log.Println("error creating worker", err.Error())
 		return err

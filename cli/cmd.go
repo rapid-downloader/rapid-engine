@@ -12,13 +12,13 @@ import (
 
 var cmds = make([]commandFunc, 0)
 
-type commandFunc func(ctx context.Context, rapid client.Rapid) *cobra.Command
+type commandFunc func(ctx context.Context, rapid *rapidClient) *cobra.Command
 
 func registerCommand(cmd commandFunc) {
 	cmds = append(cmds, cmd)
 }
 
-func executeCommands(ctx context.Context, rapid client.Rapid) {
+func executeCommands(ctx context.Context, rapid *rapidClient) {
 	rootCmd := &cobra.Command{
 		Use:   "rapid",
 		Short: "Fetch and download",
@@ -33,7 +33,7 @@ func executeCommands(ctx context.Context, rapid client.Rapid) {
 	rootCmd.Execute()
 }
 
-func download(ctx context.Context, rapid client.Rapid) *cobra.Command {
+func download(ctx context.Context, rapid *rapidClient) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "download",
 		Aliases: []string{"d"},
