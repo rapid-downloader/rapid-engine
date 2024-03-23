@@ -26,7 +26,7 @@ function click() {
         <i-material-symbols-check-circle v-if="type === 'success'" class="text-success"/>
         <i-material-symbols-info v-if="type === 'info'" class="text-info"/>
         <i-clarity-error-standard-solid v-if="type === 'warning'" class="text-warning"/>
-        <i-bx-bxs-error v-if="type === 'destructive'" class="text-destructive"/>
+        <i-bx-bxs-error v-if="type === 'destructive'" class="text-destructive text-lg"/>
 
         <div>
             <p :class="`text-sm font-medium ${toastVariants({ text: type })}`">{{ title }}</p>

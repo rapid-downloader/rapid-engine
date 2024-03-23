@@ -1,3 +1,3 @@
 <template>
-    <i-fluent-arrow-sync-20-filled class="text-foreground" />
+    <i-fluent-arrow-undo-24-filled class="text-foreground" />
 </template>

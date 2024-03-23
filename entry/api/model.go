@@ -38,10 +38,10 @@ type (
 		Type             string    `json:"type"`
 		ChunkLen         int       `json:"chunklen"`
 		Resumable        bool      `json:"resumable"`
-		Progress         int       `json:"progress"`
+		Progress         float64   `json:"progress"`
 		Expired          bool      `json:"expired"`
 		DownloadedChunks []int64   `json:"downloadedChunks"`
-		TimeLeft         int       `json:"timeLeft"`
+		TimeLeft         float64   `json:"timeLeft"`
 		Speed            float64   `json:"speed"`
 		Status           string    `json:"status"`
 		Date             time.Time `json:"date"`
@@ -56,10 +56,10 @@ type (
 		URL              *string  `json:"url"`
 		Provider         *string  `json:"provider"`
 		Resumable        *bool    `json:"resumable"`
-		Progress         *int     `json:"progress"`
+		Progress         *float64 `json:"progress"`
 		Expired          *bool    `json:"expired"`
 		DownloadedChunks []int64  `json:"downloadedChunks"`
-		TimeLeft         *int     `json:"timeLeft"`
+		TimeLeft         *float64 `json:"timeLeft"`
 		Speed            *float64 `json:"speed"`
 		Status           *string  `json:"status"`
 	}

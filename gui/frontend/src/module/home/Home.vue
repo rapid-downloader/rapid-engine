@@ -13,6 +13,7 @@ import { useNow, useTimeout } from '@vueuse/core';
 //@ts-ignore
 import { EventsOn } from '@/../wailsjs/runtime'
 import { Download } from './types';
+import { Downloader } from '../download/api';
 
 const types = [
     { value: 'Document', label: 'Document' },
@@ -34,6 +35,7 @@ const loading = ref(true)
 const dlentries = ref<Record<string, Download>>({})
 
 const entries = Entries()
+const downloader = Downloader()
 
 const page = ref(1)
 onMounted(async () => {
@@ -50,9 +52,9 @@ watch(page, async p => {
     }
 })
 
-onUnmounted(async () => {
-    await entries.updateAll(dlentries.value)
-})
+// onUnmounted(async () => {
+//     await entries.updateAll(dlentries.value)
+// })
 
 const dialogOpen = ref(false)
 async function fetched(result: Download) {
@@ -84,9 +86,9 @@ const items = computed(() => {
 interface Progress {
     id: string
     index: number
-    downloaded: number
-    size: number
-    progress: number
+    downloaded?: number
+    size?: number
+    progress?: number
     length: number
     done: boolean
 }
@@ -94,13 +96,18 @@ interface Progress {
 const now = useNow()
 const { ready, start } = useTimeout(1000, { controls: true })
 
+const singo = ref()
+
 async function update(progress: Progress) {
-    if (dlentries.value[progress.id].downloadedChunks === undefined) {
+    singo.value = progress
+    if (!dlentries.value[progress.id].downloadedChunks) {
         dlentries.value[progress.id].downloadedChunks = new Array<number>(progress.length)
     }
 
-    dlentries.value[progress.id].downloadedChunks[progress.index] = progress.downloaded
-    dlentries.value[progress.id].status = 'Downloading'
+    if (progress.downloaded) {
+        dlentries.value[progress.id].downloadedChunks[progress.index] = progress.downloaded
+        dlentries.value[progress.id].status = 'Downloading'
+    }
 
     const downloadedTotal = dlentries.value[progress.id]
         .downloadedChunks.reduce((total, chunk) => total + chunk)
@@ -127,11 +134,13 @@ async function update(progress: Progress) {
     }
 
     if (progress.done) {
-        dlentries.value[progress.id].status = 'Completed'
-        dlentries.value[progress.id].timeLeft = 0
-        dlentries.value[progress.id].progress = 100
-
-        await entries.update(dlentries.value[progress.id])
+        dlentries.value[progress.id].progress = (downloadedTotal / size) * 100
+        if (dlentries.value[progress.id].progress == 100) {
+            dlentries.value[progress.id].status =  'Completed'
+            dlentries.value[progress.id].timeLeft = 0
+            
+            await entries.update(dlentries.value[progress.id])
+        }
     }
 }
 
@@ -139,6 +148,41 @@ EventsOn('progress', async (...event: any) => {
     update(event[0] as Progress)
 })
 
+async function removeEntry(id: string, fromDisk: boolean) {
+    delete dlentries.value[id]
+    await entries.deleteEntry(id, fromDisk)
+}
+
+async function stopDownload(id: string) {
+    await downloader.stop(id)
+
+    const entry = dlentries.value[id]
+    entry.status = 'Stoped'
+    await entries.update(dlentries.value[id])
+}
+
+async function pauseDownload(id: string) {
+    await downloader.pause(id)
+
+    dlentries.value[id].status = 'Paused'
+    await entries.update(dlentries.value[id])
+}
+
+async function resumeDownload(id: string) {
+    await downloader.resume(id)
+
+    const entry = dlentries.value[id]
+    entry.status = 'Downloading'
+    await entries.update(dlentries.value[id])
+}
+
+async function restartDownload(id: string) {
+    await downloader.restart(id)
+
+    const entry = dlentries.value[id]
+    entry.status = 'Downloading'
+    await entries.update(dlentries.value[id])
+}
 </script>
 
 <template>
@@ -200,6 +244,16 @@ EventsOn('progress', async (...event: any) => {
         </div>
 
         <download-list-skeleton v-if="loading" />
-        <download-list @delete="id => entries.deleteEntry(id)" v-else class="w-full" :items="items" @paginate="page++"/>
+        <download-list v-else 
+            @pause="pauseDownload"
+            @resume="resumeDownload"
+            @restart="restartDownload"
+            @delete="removeEntry" 
+            @cancel="stopDownload"
+            class="w-full" 
+            :items="items" 
+            @paginate="page++"
+            
+        />
     </div>
 </template>
