@@ -24,7 +24,7 @@ type rapidClient struct {
 
 func NewRapid(ctx context.Context, id string) (*rapidClient, error) {
 	host := env.Get("API_HOST").String("localhost")
-	port := env.Get("API_PORT").String(":9999")
+	port := env.Get("API_PORT").String(":8888")
 
 	url := fmt.Sprintf("http://%s%s", host, port)
 	wsUrl := fmt.Sprintf("ws://%s%s/ws/%s", host, port, id)
