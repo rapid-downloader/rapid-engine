@@ -83,38 +83,38 @@ const items = computed(() => {
     return filtered
 })
 
+interface ChunkProgress {
+    downloaded: number
+    size: number
+    progress: number
+    done: boolean
+}
+
 interface Progress {
     id: string
-    index: number
-    downloaded?: number
-    size?: number
-    progress?: number
-    length: number
     done: boolean
+    chunks: ChunkProgress[]
 }
 
 const now = useNow()
 const { ready, start } = useTimeout(1000, { controls: true })
 
-const singo = ref()
-
 async function update(progress: Progress) {
-    singo.value = progress
+    if (progress.chunks == null) return
+
     if (!dlentries.value[progress.id].downloadedChunks) {
-        dlentries.value[progress.id].downloadedChunks = new Array<number>(progress.length)
+        dlentries.value[progress.id].downloadedChunks = new Array<number>(progress.chunks.length)
     }
 
-    if (progress.downloaded) {
-        dlentries.value[progress.id].downloadedChunks[progress.index] = progress.downloaded
-        dlentries.value[progress.id].status = 'Downloading'
+    let downloaded = 0
+    for (let i = 0; i < progress.chunks.length; i++) {
+        downloaded += progress.chunks[i].downloaded
+        dlentries.value[progress.id].downloadedChunks[i] = progress.chunks[i].downloaded
     }
-
-    const downloadedTotal = dlentries.value[progress.id]
-        .downloadedChunks.reduce((total, chunk) => total + chunk)
     
     // // calculate the total downloaded percentage
     const size = dlentries.value[progress.id].size
-    dlentries.value[progress.id].progress = (downloadedTotal / size) * 100
+    dlentries.value[progress.id].progress = (downloaded / size) * 100
 
     // refresh calculation every second
     if (ready.value) {
@@ -123,30 +123,28 @@ async function update(progress: Progress) {
                 now.value.getTime() - new Date(dlentries.value[progress.id].date).getTime()
             ).getTime() / 1000
 
-        const speed = downloadedTotal / elapsedSecond
+        const speed = downloaded / elapsedSecond
         dlentries.value[progress.id].speed = speed
 
         // calculate time left
-        const remainingSize = size - downloadedTotal
+        const remainingSize = size - downloaded
         dlentries.value[progress.id].timeLeft = remainingSize / speed
         
         start()
     }
 
-    if (progress.done) {
-        dlentries.value[progress.id].progress = (downloadedTotal / size) * 100
-        if (dlentries.value[progress.id].progress == 100) {
-            dlentries.value[progress.id].status =  'Completed'
-            dlentries.value[progress.id].timeLeft = 0
-            
-            await entries.update(dlentries.value[progress.id])
-        }
-    }
+    if (progress.chunks.every(chunk => chunk.done)) {
+        dlentries.value[progress.id].status =  'Completed'
+        dlentries.value[progress.id].timeLeft = 0
+        dlentries.value[progress.id].progress = (downloaded / size) * 100
+        
+        await entries.update(dlentries.value[progress.id])
+    } 
+
+    else dlentries.value[progress.id].status =  'Downloading'
 }
 
-EventsOn('progress', async (...event: any) => {
-    update(event[0] as Progress)
-})
+EventsOn('progress', async (...progress: Progress[]) => update(progress[0]))
 
 async function removeEntry(id: string, fromDisk: boolean) {
     delete dlentries.value[id]

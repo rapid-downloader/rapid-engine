@@ -99,9 +99,8 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 	}
 
 	channel.Publish(rapidClient.Progress{
-		ID:     entry.ID(),
-		Lenght: entry.ChunkLen(),
-		Done:   true,
+		ID:   entry.ID(),
+		Done: true,
 	})
 }
 
@@ -140,9 +139,8 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 	}
 
 	channel.Publish(rapidClient.Progress{
-		ID:     entry.ID(),
-		Lenght: entry.ChunkLen(),
-		Done:   true,
+		ID:   entry.ID(),
+		Done: true,
 	})
 }
 
@@ -180,9 +178,8 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 	}
 
 	channel.Publish(rapidClient.Progress{
-		ID:     entry.ID(),
-		Lenght: entry.ChunkLen(),
-		Done:   true,
+		ID:   entry.ID(),
+		Done: true,
 	})
 }
 

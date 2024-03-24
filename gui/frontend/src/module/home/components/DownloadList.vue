@@ -122,7 +122,6 @@ onMounted(() => {
         document.addEventListener('scroll', onScroll)
         document.addEventListener('resize', onScroll)
     }
-    
 })
 
 onUnmounted(() => {

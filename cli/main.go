@@ -28,28 +28,38 @@ func progressbar() progressBar {
 	}
 }
 
-func (p *progressBar) update(index int, downloaded int64, chunkSize int64) {
-	i := fmt.Sprintf("%d", index)
+var once = sync.Once{}
 
-	if val, ok := p.barMap.Load(i); ok {
-		bar := val.(*mpb.Bar)
-		bar.IncrBy(int(downloaded - bar.Current()))
+func (p *progressBar) update(progress client.Progress) {
+	once.Do(func() {
+		for i, chunk := range progress.Chunks {
+			bar := p.mpb.AddBar(chunk.Size,
+				mpb.PrependDecorators(
+					decor.CountersKiloByte("% .2f / % .2f"),
+				),
+				mpb.AppendDecorators(
+					decor.AverageETA(decor.ET_STYLE_MMSS),
+					decor.Name(" | "),
+					decor.AverageSpeed(decor.UnitKB, "% .2f"),
+				),
+			)
 
-		return
+			p.barMap.Store(i, bar)
+		}
+	})
+
+	for i, chunk := range progress.Chunks {
+		if val, ok := p.barMap.Load(i); ok {
+			bar := val.(*mpb.Bar)
+
+			if chunk.Done {
+				bar.SetTotal(chunk.Size, true)
+			} else {
+				bar.IncrBy(int(chunk.Downloaded - bar.Current()))
+			}
+		}
+
 	}
-
-	bar := p.mpb.AddBar(chunkSize,
-		mpb.PrependDecorators(
-			decor.CountersKiloByte("% .2f / % .2f"),
-		),
-		mpb.AppendDecorators(
-			decor.AverageETA(decor.ET_STYLE_MMSS),
-			decor.Name(" | "),
-			decor.AverageSpeed(decor.UnitKB, "% .2f"),
-		),
-	)
-
-	p.barMap.Store(i, bar)
 }
 
 func init() {
@@ -86,7 +96,7 @@ func main() {
 			return
 		}
 
-		progressBar.update(progress.Index, progress.Downloaded, progress.Size)
+		progressBar.update(progress)
 	})
 
 	for {

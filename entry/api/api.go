@@ -144,11 +144,9 @@ func (s *entryService) deleteEntry(ctx *fiber.Ctx) error {
 
 	for i := 0; i < entry.ChunkLen; i++ {
 		dirpath := strings.Replace(entry.Location, filepath.Base(entry.Location), "", 1)
-		path := fmt.Sprintf("%s/%s-%d", dirpath, entry.ID, i)
+		path := fmt.Sprintf("%s%s-%d", dirpath, entry.ID, i)
 
-		if err := os.Remove(path); err != nil {
-			log.Println(err)
-		}
+		os.Remove(path)
 	}
 
 	if err := os.Remove(entry.Location); err != nil {

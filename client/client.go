@@ -41,12 +41,15 @@ type Download struct {
 }
 
 type Progress struct {
-	ID         string  `json:"id"`
-	Index      int     `json:"index"`
+	ID     string          `json:"id"`
+	Done   bool            `json:"done"`
+	Chunks []ChunkProgress `json:"chunks"`
+}
+
+type ChunkProgress struct {
 	Downloaded int64   `json:"downloaded"`
 	Size       int64   `json:"size"`
 	Progress   float64 `json:"progress"`
-	Lenght     int     `json:"lenght"`
 	Done       bool    `json:"done"`
 }
 

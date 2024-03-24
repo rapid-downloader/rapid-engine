@@ -14,13 +14,20 @@ type (
 	channel struct {
 		ch   chan interface{}
 		once sync.Once
+		name string
 	}
 )
 
-func NewChannel() Channel {
+func NewChannel(name ...string) Channel {
+	n := ""
+	if len(name) > 0 {
+		n = name[0]
+	}
+
 	return &channel{
 		make(chan interface{}, 100),
 		sync.Once{},
+		n,
 	}
 }
 
@@ -43,6 +50,10 @@ func (c *channel) Subscribe(callback ...OnPublished) <-chan interface{} {
 func (c *channel) Close() error {
 	c.once.Do(func() {
 		close(c.ch)
+
+		if c.name != "" {
+			delete(channels, c.name)
+		}
 	})
 
 	return nil
@@ -58,7 +69,7 @@ func CreateChannel(name string) Channel {
 		return channel
 	}
 
-	channel := NewChannel()
+	channel := NewChannel(name)
 	channels[name] = channel
 
 	return channel
