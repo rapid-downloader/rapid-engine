@@ -200,8 +200,6 @@ func (s *downloaderService) stop(ctx *fiber.Ctx) error {
 		return response.NotFound(ctx)
 	}
 
-	s.memstore.Delete(entry.ID())
-
 	return s.doStop(entry, ctx)
 }
 

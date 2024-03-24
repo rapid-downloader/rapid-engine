@@ -216,21 +216,21 @@ function pause(id: string, item: Download) {
                                     title="Pause download" 
                                     :description="`This will pause the download process of ${item.name}. Are you sure?`" 
                                     :actionable="{ label: 'Pause', type: 'warning', action: () => pause(id, item) }" >
-                                    <Button size="icon" variant="ghost" class="bg-muted group/action rounded-full hover:border hover:bg-muted hover:text-foreground w-7 h-7">
+                                    <Button size="icon" variant="ghost" class="bg-muted group/action rounded-full hover:border hover:border-foreground/80 hover:bg-muted hover:text-foreground w-7 h-7">
                                         <i-fluent-pause-16-regular class="group-hover/action:hidden" />
                                         <i-fluent-pause-16-filled class="hidden group-hover/action:block" />
                                     </Button>
                                 </Confirmation>
-                                <Button @click="() => resume(item)" v-else-if="item.status === 'Paused'" size="icon" variant="ghost" class="bg-muted group/action rounded-full hover:border hover:bg-muted hover:text-foreground w-7 h-7">
+                                <Button @click="() => resume(item)" v-else-if="item.status === 'Paused'" size="icon" variant="ghost" class="bg-muted group/action rounded-full hover:border hover:border-foreground/80 hover:bg-muted hover:text-foreground w-7 h-7">
                                         <i-fluent-play-16-regular class="group-hover/action:hidden" />
                                         <i-fluent-play-16-filled class="hidden group-hover/action:block" />
                                 </Button>
                                 <Confirmation 
-                                    v-else-if="item.status === 'Failed'"
+                                    v-else-if="item.status === 'Failed' || item.status === 'Stoped'"
                                     title="Restart download" 
                                     :description="`All the download process of ${item.name} will be restarted from the start. Are you sure?`" 
                                     :actionable="{ label: 'Restart', type: 'default', action: () => restart(item) }" >
-                                    <Button @click="() => restart(item)" size="icon" variant="ghost" class="bg-muted group/action rounded-full hover:border hover:bg-muted hover:text-foreground w-7 h-7">
+                                    <Button @click="() => restart(item)" size="icon" variant="ghost" class="bg-muted group/action rounded-full hover:border hover:border-foreground/80 hover:bg-muted hover:text-foreground w-7 h-7">
                                             <i-fluent-arrow-sync-24-regular class="group-hover/action:hidden" />
                                             <i-fluent-arrow-sync-24-filled class="hidden group-hover/action:block" />
                                     </Button>

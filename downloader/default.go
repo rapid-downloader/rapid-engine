@@ -172,14 +172,6 @@ func (dl *localDownloader) Restart(entry entry.Entry) error {
 		return err
 	}
 
-	// remove the downloaded chunk if any
-	for i := 0; i < entry.ChunkLen(); i++ {
-		chunkFile := filepath.Join(dl.setting.DownloadLocation, fmt.Sprintf("%s-%d", entry.ID(), i))
-		if err := os.Remove(chunkFile); err != nil {
-			return err
-		}
-	}
-
 	return dl.Download(entry)
 }
 
