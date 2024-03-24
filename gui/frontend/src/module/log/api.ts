@@ -1,8 +1,6 @@
-import Http from "@/composable/http"
+import { http } from "@/plugins/http"
 
 export default function() {
-
-    const http = Http()
 
     async function get(date: string): Promise<string[]> {
         try {

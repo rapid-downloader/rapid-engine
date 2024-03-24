@@ -1,10 +1,7 @@
-import { Http } from "@/composable"
+import { http } from "@/plugins/http"
 import { BatchDownload, Download, UpdateDownload } from "./types"
-import { isAxiosError } from "axios"
 
 export default function Entries() {
-
-    const http = Http()
 
     async function all(page: number = 1): Promise<Record<string, Download>> {
         try {
@@ -21,9 +18,7 @@ export default function Entries() {
 
             return data
         } catch (error) {
-            if (isAxiosError(error)) {
-                console.error(error.message)
-            }
+            console.error(error);
             return {}
         }
     }
@@ -46,7 +41,7 @@ export default function Entries() {
             const res = await http.put('/entries', req)
             return res.status === 200
         } catch (error) {
-            // TODO: add notification
+            console.error(error);
             return false
         }
     }
@@ -65,19 +60,22 @@ export default function Entries() {
                 status: entry.status,
             }
 
+            console.log('update', req);
+            
+
             const res = await http.put(`/entries/${entry.id}`, req)
             return res.status === 200
         } catch (error) {
-            // TODO: add notification
+            console.error(error);
             return false
         }
     }
 
-    async function deleteEntry(id: string) {
+    async function deleteEntry(id: string, fromDisk: boolean) {
         try {
-            await http.delete(`/entries/${id}`)
+            await http.delete(`/entries/${id}?fromDisk=${fromDisk}`)
         } catch (error) {
-            // TODO: add notification
+            console.error(error);
         }
     }
 

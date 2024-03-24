@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/rapid-downloader/rapid/client"
 	"github.com/rapid-downloader/rapid/entry"
 	"github.com/rapid-downloader/rapid/log"
 	"github.com/rapid-downloader/rapid/setting"
@@ -51,9 +52,14 @@ func (dl *localDownloader) Download(entry entry.Entry) error {
 	w.Start()
 	defer w.Stop()
 
+	progress := client.Progress{
+		ID:     entry.ID(),
+		Chunks: make([]client.ChunkProgress, entry.ChunkLen()),
+	}
+
 	chunks := make([]*chunk, entry.ChunkLen())
 	for i := 0; i < entry.ChunkLen(); i++ {
-		chunks[i] = newChunk(entry, i, dl.setting, &wg)
+		chunks[i] = newChunk(entry, i, dl.setting, &progress, &wg)
 
 		if dl.onprogress != nil {
 			chunks[i].onProgress(dl.onprogress)
@@ -112,14 +118,20 @@ func (dl *localDownloader) Resume(entry entry.Entry) error {
 	worker.Start()
 	defer worker.Stop()
 
+	progress := client.Progress{
+		ID:     entry.ID(),
+		Chunks: make([]client.ChunkProgress, entry.ChunkLen()),
+	}
+
 	chunks := make([]*chunk, 0)
 	for i := 0; i < entry.ChunkLen(); i++ {
-		chunk := newChunk(entry, i, dl.setting, &wg)
-		if file, err := os.Stat(chunk.path); err == nil && file.Size() == chunk.size {
-			continue
-		}
+		chunk := newChunk(entry, i, dl.setting, &progress, &wg)
 
-		chunk.start += resumePosition(chunk.path)
+		downloaded := resumePosition(chunk.path)
+
+		chunk.start += downloaded
+		progress.Chunks[i].Downloaded += downloaded
+
 		if dl.onprogress != nil {
 			chunk.onProgress(dl.onprogress)
 		}
@@ -133,6 +145,10 @@ func (dl *localDownloader) Resume(entry entry.Entry) error {
 	}
 
 	wg.Wait()
+
+	if entry.Context().Err() != nil {
+		return nil
+	}
 
 	if err := dl.createFile(entry, dl.setting); err != nil {
 		log.Println("error combining chunks:", err.Error())
@@ -154,14 +170,6 @@ func (dl *localDownloader) Restart(entry entry.Entry) error {
 
 	if err := entry.Refresh(); err != nil {
 		return err
-	}
-
-	// remove the downloaded chunk if any
-	for i := 0; i < entry.ChunkLen(); i++ {
-		chunkFile := filepath.Join(dl.setting.DownloadLocation, fmt.Sprintf("%s-%d", entry.ID(), i))
-		if err := os.Remove(chunkFile); err != nil {
-			return err
-		}
 	}
 
 	return dl.Download(entry)

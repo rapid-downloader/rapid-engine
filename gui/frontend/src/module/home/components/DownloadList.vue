@@ -13,7 +13,7 @@ import { Download, Sort } from '../types'
 import { parseSize, parseDate, statusColor, parseTimeleft } from '@/lib/parse';
 import FileType from './FileType.vue'
 import StatusIcon from './StatusIcon.vue';
-import { computed, defineComponent, h, markRaw, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useRouteQuery } from '@vueuse/router';
 import { Button } from '@/components/ui/button';
 import Confirmation from '@/components/Confirmation.vue';
@@ -35,14 +35,39 @@ function sort(row: Sort) {
 
 const emit = defineEmits<{
     (e: 'paginate'): void,
-    (e: 'delete', id: string): void
+    (e: 'delete', id: string, fromDisk: boolean): void
+    (e: 'cancel', id: string): void
+    (e: 'resume', id: string): void
+    (e: 'pause', id: string): void
+    (e: 'restart', id: string): void
 }>()
 
 const search = useRouteQuery('search', '')
 
 const items = computed(() => {
+    if (search.value) {
+        return Object.entries(props.items)
+            .filter(([_, item]) => item.name.toLowerCase().includes(search.value.toLowerCase()))
+            .sort(([, v1], [, v2]) => {
+                if (selected.value === 'date') {
+                    return asc.value
+                        ? new Date(v1.date).getTime() - new Date(v2.date).getTime()
+                        : new Date(v2.date).getTime() - new Date(v1.date).getTime()
+                }
+    
+                if (selected.value === 'size') {
+                    return asc.value
+                        ? v1.size - v2.size
+                        : v2.size - v1.size
+                }
+    
+                return asc.value
+                    ? v1.name.localeCompare(v2.name)
+                    : v2.name.localeCompare(v1.name)
+            })
+    }
+
     return Object.entries(props.items)
-        .filter(([_, item]) => item.name.toLowerCase().includes(search.value.toLowerCase()))
         .sort(([, v1], [, v2]) => {
             if (selected.value === 'date') {
                 return asc.value
@@ -75,8 +100,6 @@ function isVisible(element: HTMLElement) {
 }
 
 function onScroll() {
-    console.log(isVisible(pagination.value!));
-    
     if (pagination.value && isVisible(pagination.value)) {
         emit('paginate')
     }
@@ -99,7 +122,6 @@ onMounted(() => {
         document.addEventListener('scroll', onScroll)
         document.addEventListener('resize', onScroll)
     }
-    
 })
 
 onUnmounted(() => {
@@ -115,16 +137,32 @@ function remove(item: Download) {
         duration: timeout,
         type: 'success', 
         onAutoClose: () => {
-            // TODO: delete 
+            emit('delete', item.id, wantRemoveFromDisk.value)
         },
+        dismissible: true,
+        onDismiss: () => emit('delete', item.id, wantRemoveFromDisk.value),
         action: {
             label: 'Undo',
             icon: Undo,
             onClick: () => {}
         },
     })
+}
 
-    setTimeout(() => emit('delete', item.id), timeout);
+function cancel(item: Download) {
+    emit('cancel', item.id)
+}
+
+function resume(item: Download) {
+    emit('resume', item.id)
+}
+
+function restart(item: Download) {
+    emit('restart', item.id)
+}
+
+function pause(id: string, item: Download) {
+    emit('pause', item.id)
 }
 
 </script>
@@ -136,7 +174,7 @@ function remove(item: Download) {
         </div>
         
         <div ref="container" v-else >
-            <Table  class="min-w-max">
+            <Table class="min-w-max">
                 <table-caption></table-caption>
                 <table-header>
                     <table-row class="hover:bg-secondary border-muted-foreground">
@@ -166,23 +204,50 @@ function remove(item: Download) {
                     </table-row>
                 </table-header>
                 <table-body>
-                    <table-row v-for="[id, item] in items" :key="id" class="group relative cursor-pointer">
+                    <table-row v-for="[id, item] in items" :key="id"  class="group relative cursor-pointer">
                         <table-cell class="font-medium">
                             <file-type :type="item.type" /> 
                         </table-cell>
                         <table-cell class="min-w-[30rem] relative group/cell">
                             <p class="w-[95%] group-hover/cell:w-[75%] truncate">{{ item.name }}</p>
                             <div class="hidden group-hover/cell:flex absolute top-1/2 -translate-y-1/2 right-5 gap-2 py-2">
-                                <Button size="icon" variant="ghost" class="bg-muted group/action rounded-full hover:bg-secondary hover:text-foreground w-7 h-7">
-                                    <i-fluent:pause-16-regular class="group-hover/action:hidden" />
-                                    <i-fluent:pause-16-filled class="hidden group-hover/action:block" />
-                                </Button>
-                                <Button size="icon" variant="ghost" class="group/action rounded-full text-warning hover:bg-warning hover:text-warning-foreground w-7 h-7">
-                                    <i-fluent:stop-16-regular class="group-hover/action:hidden"/>
-                                    <i-fluent:stop-16-filled class="hidden group-hover/action:block"/>
+                                <Confirmation 
+                                    v-if="item.status === 'Downloading'"
+                                    title="Pause download" 
+                                    :description="`This will pause the download process of ${item.name}. Are you sure?`" 
+                                    :actionable="{ label: 'Pause', type: 'warning', action: () => pause(id, item) }" >
+                                    <Button size="icon" variant="ghost" class="bg-muted group/action rounded-full hover:border hover:border-foreground/80 hover:bg-muted hover:text-foreground w-7 h-7">
+                                        <i-fluent-pause-16-regular class="group-hover/action:hidden" />
+                                        <i-fluent-pause-16-filled class="hidden group-hover/action:block" />
+                                    </Button>
+                                </Confirmation>
+                                <Button @click="() => resume(item)" v-else-if="item.status === 'Paused'" size="icon" variant="ghost" class="bg-muted group/action rounded-full hover:border hover:border-foreground/80 hover:bg-muted hover:text-foreground w-7 h-7">
+                                        <i-fluent-play-16-regular class="group-hover/action:hidden" />
+                                        <i-fluent-play-16-filled class="hidden group-hover/action:block" />
                                 </Button>
                                 <Confirmation 
-                                    title="Delete download" 
+                                    v-else-if="item.status === 'Failed' || item.status === 'Stoped'"
+                                    title="Restart download" 
+                                    :description="`All the download process of ${item.name} will be restarted from the start. Are you sure?`" 
+                                    :actionable="{ label: 'Restart', type: 'default', action: () => restart(item) }" >
+                                    <Button @click="() => restart(item)" size="icon" variant="ghost" class="bg-muted group/action rounded-full hover:border hover:border-foreground/80 hover:bg-muted hover:text-foreground w-7 h-7">
+                                            <i-fluent-arrow-sync-24-regular class="group-hover/action:hidden" />
+                                            <i-fluent-arrow-sync-24-filled class="hidden group-hover/action:block" />
+                                    </Button>
+                                </Confirmation>
+
+                                <Confirmation 
+                                    title="Stop download" 
+                                    :description="`This will stop the download process of ${item.name}. Are you sure?`" 
+                                    :actionable="{ label: 'Stop', type: 'warning', action: () => cancel(item) }" >
+                                    <Button :disabled="item.status !== 'Downloading'" size="icon" variant="ghost" class="group/action rounded-full text-warning hover:bg-warning hover:text-warning-foreground w-7 h-7">
+                                        <i-fluent:stop-16-regular class="group-hover/action:hidden"/>
+                                        <i-fluent:stop-16-filled class="hidden group-hover/action:block"/>
+                                    </Button>
+                                </Confirmation>
+
+                                <Confirmation 
+                                    title="Delete entry" 
                                     :description="`This will delete ${item.name} from the list forever. If this is an on going download, it will be stopped and then deleted. Are you sure?`" 
                                     :actionable="{ label: 'Delete', type: 'destructive', action: () => remove(item) }" >
                                     <Button size="icon" variant="ghost" class="rounded-full text-destructive hover:bg-destructive hover:text-destructive-foreground w-7 h-7">
@@ -192,7 +257,7 @@ function remove(item: Download) {
 
                                     <template #additional>
                                         <div class="w-full flex gap-2 items-center">
-                                            <Checkbox v-model="wantRemoveFromDisk" />
+                                            <Checkbox v-model:checked="wantRemoveFromDisk" />
                                             <p class="text-xs opacity-80">Remove from disk</p>
                                         </div>
                                     </template>

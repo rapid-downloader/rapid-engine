@@ -32,7 +32,7 @@ export interface UpdateDownload {
     downloadedChunks: number[]
     timeLeft: number
     speed: number
-    status: Status
+    status: string
 }
 
 export interface BatchDownload {

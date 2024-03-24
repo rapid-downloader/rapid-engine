@@ -13,6 +13,7 @@ import { useNow, useTimeout } from '@vueuse/core';
 //@ts-ignore
 import { EventsOn } from '@/../wailsjs/runtime'
 import { Download } from './types';
+import { Downloader } from '../download/api';
 
 const types = [
     { value: 'Document', label: 'Document' },
@@ -34,6 +35,7 @@ const loading = ref(true)
 const dlentries = ref<Record<string, Download>>({})
 
 const entries = Entries()
+const downloader = Downloader()
 
 const page = ref(1)
 onMounted(async () => {
@@ -50,9 +52,9 @@ watch(page, async p => {
     }
 })
 
-onUnmounted(async () => {
-    await entries.updateAll(dlentries.value)
-})
+// onUnmounted(async () => {
+//     await entries.updateAll(dlentries.value)
+// })
 
 const dialogOpen = ref(false)
 async function fetched(result: Download) {
@@ -81,33 +83,38 @@ const items = computed(() => {
     return filtered
 })
 
-interface Progress {
-    id: string
-    index: number
+interface ChunkProgress {
     downloaded: number
     size: number
     progress: number
-    length: number
     done: boolean
+}
+
+interface Progress {
+    id: string
+    done: boolean
+    chunks: ChunkProgress[]
 }
 
 const now = useNow()
 const { ready, start } = useTimeout(1000, { controls: true })
 
 async function update(progress: Progress) {
-    if (dlentries.value[progress.id].downloadedChunks === undefined) {
-        dlentries.value[progress.id].downloadedChunks = new Array<number>(progress.length)
+    if (progress.chunks == null) return
+
+    if (!dlentries.value[progress.id].downloadedChunks) {
+        dlentries.value[progress.id].downloadedChunks = new Array<number>(progress.chunks.length)
     }
 
-    dlentries.value[progress.id].downloadedChunks[progress.index] = progress.downloaded
-    dlentries.value[progress.id].status = 'Downloading'
-
-    const downloadedTotal = dlentries.value[progress.id]
-        .downloadedChunks.reduce((total, chunk) => total + chunk)
+    let downloaded = 0
+    for (let i = 0; i < progress.chunks.length; i++) {
+        downloaded += progress.chunks[i].downloaded
+        dlentries.value[progress.id].downloadedChunks[i] = progress.chunks[i].downloaded
+    }
     
     // // calculate the total downloaded percentage
     const size = dlentries.value[progress.id].size
-    dlentries.value[progress.id].progress = (downloadedTotal / size) * 100
+    dlentries.value[progress.id].progress = (downloaded / size) * 100
 
     // refresh calculation every second
     if (ready.value) {
@@ -116,29 +123,64 @@ async function update(progress: Progress) {
                 now.value.getTime() - new Date(dlentries.value[progress.id].date).getTime()
             ).getTime() / 1000
 
-        const speed = downloadedTotal / elapsedSecond
+        const speed = downloaded / elapsedSecond
         dlentries.value[progress.id].speed = speed
 
         // calculate time left
-        const remainingSize = size - downloadedTotal
+        const remainingSize = size - downloaded
         dlentries.value[progress.id].timeLeft = remainingSize / speed
         
         start()
     }
 
-    if (progress.done) {
-        dlentries.value[progress.id].status = 'Completed'
+    if (progress.chunks.every(chunk => chunk.done)) {
+        dlentries.value[progress.id].status =  'Completed'
         dlentries.value[progress.id].timeLeft = 0
-        dlentries.value[progress.id].progress = 100
-
+        dlentries.value[progress.id].progress = (downloaded / size) * 100
+        
         await entries.update(dlentries.value[progress.id])
-    }
+    } 
+
+    else dlentries.value[progress.id].status =  'Downloading'
 }
 
-EventsOn('progress', async (...event: any) => {
-    update(event[0] as Progress)
-})
+EventsOn('progress', async (...progress: Progress[]) => update(progress[0]))
 
+async function removeEntry(id: string, fromDisk: boolean) {
+    delete dlentries.value[id]
+    await entries.deleteEntry(id, fromDisk)
+}
+
+async function stopDownload(id: string) {
+    await downloader.stop(id)
+
+    const entry = dlentries.value[id]
+    entry.status = 'Stoped'
+    await entries.update(dlentries.value[id])
+}
+
+async function pauseDownload(id: string) {
+    await downloader.pause(id)
+
+    dlentries.value[id].status = 'Paused'
+    await entries.update(dlentries.value[id])
+}
+
+async function resumeDownload(id: string) {
+    await downloader.resume(id)
+
+    const entry = dlentries.value[id]
+    entry.status = 'Downloading'
+    await entries.update(dlentries.value[id])
+}
+
+async function restartDownload(id: string) {
+    await downloader.restart(id)
+
+    const entry = dlentries.value[id]
+    entry.status = 'Downloading'
+    await entries.update(dlentries.value[id])
+}
 </script>
 
 <template>
@@ -200,6 +242,16 @@ EventsOn('progress', async (...event: any) => {
         </div>
 
         <download-list-skeleton v-if="loading" />
-        <download-list @delete="id => entries.deleteEntry(id)" v-else class="w-full" :items="items" @paginate="page++"/>
+        <download-list v-else 
+            @pause="pauseDownload"
+            @resume="resumeDownload"
+            @restart="restartDownload"
+            @delete="removeEntry" 
+            @cancel="stopDownload"
+            class="w-full" 
+            :items="items" 
+            @paginate="page++"
+            
+        />
     </div>
 </template>

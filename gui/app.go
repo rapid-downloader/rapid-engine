@@ -28,7 +28,7 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	host := env.Get("API_HOST").String("localhost")
-	port := env.Get("API_PORT").String(":9999")
+	port := env.Get("API_PORT").String(":8888")
 	id := "gui"
 
 	wsUrl := fmt.Sprintf("ws://%s%s/ws/%s", host, port, id)

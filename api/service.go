@@ -100,7 +100,7 @@ func (s *service) Shutdown() {
 		}
 	}()
 
-	port := env.Get("API_PORT").String(":9999")
+	port := env.Get("API_PORT").String(":8888")
 
 	if err := s.app.Listen(port); err != nil {
 		log.Fatal(err)

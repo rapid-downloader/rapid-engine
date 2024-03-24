@@ -98,41 +98,20 @@ func (s *downloaderService) doDownload(entry entry.Entry, client string) {
 		return
 	}
 
-	s.memstore.Delete(entry.ID())
 	channel.Publish(rapidClient.Progress{
-		ID:         entry.ID(),
-		Downloaded: entry.Size(),
-		Size:       entry.Size(),
-		Lenght:     entry.ChunkLen(),
-		Progress:   100,
-		Done:       true,
+		ID:   entry.ID(),
+		Done: true,
 	})
-
-	status := "Completed"
-	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
-		Status: &status,
-	})
-	if err != nil {
-		log.Println(err.Error())
-	}
 }
 
 func (s *downloaderService) resume(ctx *fiber.Ctx) error {
 	client := ctx.Params("client")
 
 	id := ctx.Params("id")
+
 	entry := s.memstore.Get(id)
 	if entry == nil {
-		return response.NotFound(ctx)
-	}
-
-	status := "Downloading"
-	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
-		Status: &status,
-	})
-
-	if err != nil {
-		return response.InternalServerError(ctx, err)
+		return response.Success(ctx, fiber.StatusNoContent)
 	}
 
 	go s.doResume(entry, client)
@@ -159,23 +138,10 @@ func (s *downloaderService) doResume(entry entry.Entry, client string) {
 		return
 	}
 
-	s.memstore.Delete(entry.ID())
 	channel.Publish(rapidClient.Progress{
-		ID:         entry.ID(),
-		Downloaded: entry.Size(),
-		Size:       entry.Size(),
-		Lenght:     entry.ChunkLen(),
-		Progress:   100,
-		Done:       true,
+		ID:   entry.ID(),
+		Done: true,
 	})
-
-	status := "Completed"
-	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
-		Status: &status,
-	})
-	if err != nil {
-		log.Println(err.Error())
-	}
 }
 
 func (s *downloaderService) restart(ctx *fiber.Ctx) error {
@@ -185,15 +151,6 @@ func (s *downloaderService) restart(ctx *fiber.Ctx) error {
 	entry := s.memstore.Get(id)
 	if entry == nil {
 		return response.NotFound(ctx)
-	}
-
-	status := "Downloading"
-	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
-		Status: &status,
-	})
-
-	if err != nil {
-		return response.InternalServerError(ctx, err)
 	}
 
 	go s.doRestart(entry, client)
@@ -215,45 +172,22 @@ func (s *downloaderService) doRestart(entry entry.Entry, client string) {
 		})
 	}
 
-	defer s.memstore.Delete(entry.ID())
-
 	if err := dl.Restart(entry); err != nil {
 		log.Printf("error restarting %s: %s", entry.Name(), err.Error())
 		return
 	}
 
 	channel.Publish(rapidClient.Progress{
-		ID:         entry.ID(),
-		Downloaded: entry.Size(),
-		Size:       entry.Size(),
-		Lenght:     entry.ChunkLen(),
-		Progress:   100,
-		Done:       true,
+		ID:   entry.ID(),
+		Done: true,
 	})
-
-	status := "Completed"
-	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
-		Status: &status,
-	})
-	if err != nil {
-		log.Println(err.Error())
-	}
 }
 
 func (s *downloaderService) pause(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
 	entry := s.memstore.Get(id)
 	if entry == nil {
-		return response.NotFound(ctx)
-	}
-
-	status := "Paused"
-	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
-		Status: &status,
-	})
-
-	if err != nil {
-		return response.InternalServerError(ctx, err)
+		return response.Success(ctx, fiber.StatusNoContent)
 	}
 
 	return s.doStop(entry, ctx)
@@ -264,17 +198,6 @@ func (s *downloaderService) stop(ctx *fiber.Ctx) error {
 	entry := s.memstore.Get(id)
 	if entry == nil {
 		return response.NotFound(ctx)
-	}
-
-	s.memstore.Delete(entry.ID())
-
-	status := "Stoped"
-	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
-		Status: &status,
-	})
-
-	if err != nil {
-		return response.InternalServerError(ctx, err)
 	}
 
 	return s.doStop(entry, ctx)

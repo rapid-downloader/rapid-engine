@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	logger "log"
 
 	"github.com/rapid-downloader/rapid/log"
 
@@ -37,10 +36,7 @@ func (s *store) Get(id string) *Download {
 	var out Download
 
 	err := s.db.View(func(tx *bbolt.Tx) error {
-		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucket))
-		if err != nil {
-			return fmt.Errorf("error creating bucket on Get:%s", err.Error())
-		}
+		bucket := tx.Bucket([]byte(s.bucket))
 
 		var val Download
 		if err := json.Unmarshal(bucket.Get([]byte(id)), &val); err != nil {
@@ -54,7 +50,7 @@ func (s *store) Get(id string) *Download {
 	})
 
 	if err != nil {
-		log.Println("Error fetching entries from db:", err.Error())
+		log.Println("error fetching entries from db:", err.Error())
 		return nil
 	}
 
@@ -76,7 +72,6 @@ func (s *store) GetAll(page, limit int) []Download {
 		end := start + limit
 
 		cursor := bucket.Cursor()
-		logger.Println(start, end, bucket.Stats().KeyN)
 
 		for k, v := cursor.Last(); k != nil; k, v = cursor.Prev() {
 			i++
@@ -220,11 +215,12 @@ func (s *store) BatchUpdate(ids []string, val []UpdateDownload) error {
 }
 
 func (s *store) Delete(id string) error {
-	return s.db.View(func(tx *bbolt.Tx) error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
 		bucket, err := tx.CreateBucketIfNotExists([]byte(s.bucket))
 		if err != nil {
 			return fmt.Errorf("error creating bucket on Delete:%s", err.Error())
 		}
+
 		return bucket.Delete([]byte(id))
 	})
 }

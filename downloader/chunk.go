@@ -17,14 +17,11 @@ import (
 )
 
 type progress struct {
-	entry      entry.Entry
 	onprogress OnProgress
 	reader     io.ReadCloser
-	chunkLen   int
 	index      int
-	downloaded int64
-	progress   float64
 	chunkSize  int64
+	prog       *client.Progress
 }
 
 func (r *progress) Read(payload []byte) (n int, err error) {
@@ -33,21 +30,11 @@ func (r *progress) Read(payload []byte) (n int, err error) {
 		return n, err
 	}
 
-	r.downloaded = r.downloaded + int64(n)
-	r.progress = float64(float64(100*r.downloaded) / float64(r.chunkSize))
+	r.prog.Chunks[r.index].Downloaded += int64(n)
+	r.prog.Chunks[r.index].Progress = float64(100*r.prog.Chunks[r.index].Downloaded) / float64(r.prog.Chunks[r.index].Size)
 
 	if r.onprogress != nil {
-		r.onprogress(
-			client.Progress{
-				ID:         r.entry.ID(),
-				Index:      r.index,
-				Downloaded: r.downloaded,
-				Size:       r.chunkSize,
-				Lenght:     r.chunkLen,
-				Progress:   r.progress,
-				Done:       false,
-			},
-		)
+		r.onprogress(r.prog)
 	}
 
 	return n, err
@@ -67,6 +54,7 @@ type chunk struct {
 	end        int64
 	size       int64
 	onprogress OnProgress
+	prog       *client.Progress
 }
 
 func calculatePosition(entry entry.Entry, chunkSize int64, index int) (int64, int64) {
@@ -98,9 +86,11 @@ func resumePosition(location string) int64 {
 	return resumePos
 }
 
-func newChunk(entry entry.Entry, index int, setting *setting.Setting, wg *sync.WaitGroup) *chunk {
+func newChunk(entry entry.Entry, index int, setting *setting.Setting, progress *client.Progress, wg *sync.WaitGroup) *chunk {
 	chunkSize := entry.Size() / int64(entry.ChunkLen())
 	start, end := calculatePosition(entry, chunkSize, index)
+
+	progress.Chunks[index].Size = chunkSize
 
 	return &chunk{
 		path:       filepath.Join(setting.DownloadLocation, fmt.Sprintf("%s-%d", entry.ID(), index)),
@@ -111,6 +101,7 @@ func newChunk(entry entry.Entry, index int, setting *setting.Setting, wg *sync.W
 		start:      start,
 		end:        end,
 		size:       chunkSize,
+		prog:       progress,
 		onprogress: nil,
 	}
 }
@@ -119,7 +110,7 @@ func (c *chunk) download(ctx context.Context) error {
 	defer c.wg.Done()
 	start := time.Now()
 
-	srcFile, err := c.getDownloadFile(ctx)
+	srcFile, err := c.getDownloadFile(ctx, c.prog)
 	if err != nil {
 		log.Println("error fetching chunk file:", err.Error())
 		return err
@@ -133,23 +124,17 @@ func (c *chunk) download(ctx context.Context) error {
 	}
 	defer dstFile.Close()
 
-	n, err := io.Copy(dstFile, srcFile)
+	_, err = io.Copy(dstFile, srcFile)
 	if err != nil {
 		log.Println("error downloading chunk:", err.Error())
 		return err
 	}
 
-	c.onprogress(
-		client.Progress{
-			ID:         c.entry.ID(),
-			Index:      c.index,
-			Lenght:     c.entry.ChunkLen(),
-			Downloaded: n,
-			Size:       c.size,
-			Progress:   float64(100 * n / c.size),
-			Done:       false,
-		},
-	)
+	c.prog.Chunks[c.index].Done = true
+	c.prog.Chunks[c.index].Downloaded = c.size
+	c.prog.Chunks[c.index].Progress = 100
+
+	c.onprogress(c.prog)
 
 	elapsed := time.Since(start)
 	log.Println("chunk", c.index, "downloaded in", elapsed.Seconds(), "s")
@@ -187,7 +172,7 @@ func (c *chunk) onProgress(onprogress OnProgress) {
 	c.onprogress = onprogress
 }
 
-func (c *chunk) getDownloadFile(ctx context.Context) (io.ReadCloser, error) {
+func (c *chunk) getDownloadFile(ctx context.Context, prog *client.Progress) (io.ReadCloser, error) {
 	req := c.entry.(entry.RequestClient).Request().Clone(ctx)
 
 	if c.start != -1 && c.end != -1 {
@@ -206,12 +191,9 @@ func (c *chunk) getDownloadFile(ctx context.Context) (io.ReadCloser, error) {
 	progressBar := &progress{
 		onprogress: c.onprogress,
 		reader:     res.Body,
-		entry:      c.entry,
 		index:      c.index,
-		chunkLen:   c.entry.ChunkLen(),
-		downloaded: 0,
-		progress:   0,
 		chunkSize:  c.size,
+		prog:       prog,
 	}
 
 	return progressBar, nil

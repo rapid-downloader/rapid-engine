@@ -1,6 +1,10 @@
 package api
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -8,6 +12,7 @@ import (
 	"github.com/rapid-downloader/rapid/db"
 	"github.com/rapid-downloader/rapid/entry"
 	response "github.com/rapid-downloader/rapid/helper"
+	"github.com/rapid-downloader/rapid/log"
 	"github.com/rapid-downloader/rapid/setting"
 	"github.com/rapid-downloader/rapid/utils"
 )
@@ -122,9 +127,30 @@ func (s *entryService) updateAllEntry(ctx *fiber.Ctx) error {
 
 func (s *entryService) deleteEntry(ctx *fiber.Ctx) error {
 	id := ctx.Params("id")
+	fromDisk := ctx.QueryBool("fromDisk", false)
+
+	entry := s.store.Get(id)
+	if entry == nil {
+		return response.Success(ctx, fiber.StatusNoContent)
+	}
 
 	if err := s.store.Delete(id); err != nil {
 		return response.Success(ctx, fiber.StatusNoContent)
+	}
+
+	if !fromDisk {
+		return response.Ok(ctx)
+	}
+
+	for i := 0; i < entry.ChunkLen; i++ {
+		dirpath := strings.Replace(entry.Location, filepath.Base(entry.Location), "", 1)
+		path := fmt.Sprintf("%s%s-%d", dirpath, entry.ID, i)
+
+		os.Remove(path)
+	}
+
+	if err := os.Remove(entry.Location); err != nil {
+		log.Println(err)
 	}
 
 	return response.Ok(ctx)
