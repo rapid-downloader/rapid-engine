@@ -33,7 +33,7 @@ const open = useVModel(props, 'open')
         </DialogTrigger>
         <DialogContent>
             <DialogHeader>
-                <DialogTitle>{{ title }}</DialogTitle>
+                <DialogTitle class="font-title">{{ title }}</DialogTitle>
                 <DialogDescription>
                     {{ description }}
                 </DialogDescription>

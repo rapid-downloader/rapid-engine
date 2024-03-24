@@ -39,7 +39,7 @@ function accept() {
     </DialogTrigger>
     <DialogContent>
         <DialogHeader>
-            <DialogTitle>{{ title }}</DialogTitle>
+            <DialogTitle class="font-title">{{ title }}</DialogTitle>
             <DialogDescription v-if="description">{{ description }}</DialogDescription>
         </DialogHeader>
 

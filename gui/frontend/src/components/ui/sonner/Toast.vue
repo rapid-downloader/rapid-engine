@@ -29,7 +29,7 @@ function click() {
         <i-bx-bxs-error v-if="type === 'destructive'" class="text-destructive text-lg"/>
 
         <div>
-            <p :class="`text-sm font-medium ${toastVariants({ text: type })}`">{{ title }}</p>
+            <p :class="`text-sm font-title font-semibold ${toastVariants({ text: type })}`">{{ title }}</p>
             <p class="text-xs text-foreground/50</p>">{{ description }}</p>
         </div>
 
