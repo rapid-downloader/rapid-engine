@@ -13,6 +13,7 @@ func init() {
 	godotenv.Load("../.env")
 }
 
+//go:embed frontend/dist
 var assets embed.FS
 
 func main() {
