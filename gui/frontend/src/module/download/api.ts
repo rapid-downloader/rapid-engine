@@ -3,7 +3,7 @@ import { Download, Request } from "../home/types"
 
 export interface Downloader {
     fetch(req: Request): Promise<Download | undefined>
-    download(id: string): void
+    download(id: string, name?: string, location?: string): void
     stop(id: string): void
     pause(id: string): void
     resume(id: string): void
@@ -21,9 +21,13 @@ export function Downloader(): Downloader {
         }
     }
 
-    async function download(id: string) {
+    async function download(id: string, name?: string, location?: string) {
         try {
-            await http.get(`/gui/download/${id}`)
+            const query = new URLSearchParams()
+            if (name) query.set('name', name)
+            if (location) query.set('location', location)
+
+            await http.get(`/gui/download/${id}?${query.toString()}`)
         } catch (error) {
             console.error(error);
         }

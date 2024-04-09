@@ -52,9 +52,9 @@ watch(page, async p => {
     }
 })
 
-// onUnmounted(async () => {
-//     await entries.updateAll(dlentries.value)
-// })
+onUnmounted(async () => {
+    await entries.updateAll(dlentries.value)
+})
 
 const dialogOpen = ref(false)
 async function fetched(result: Download) {

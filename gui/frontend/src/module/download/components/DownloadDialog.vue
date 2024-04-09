@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { required, url, helpers } from '@vuelidate/validators'
 import { useVuelidate } from '@vuelidate/core'
 import { Downloader } from '../api'
-import { DialogClose } from 'radix-vue';
 import { Download, Request } from '@/module/home/types';
 import { Progress } from '@/components/ui/progress';
 
@@ -67,7 +66,7 @@ async function fetch(e: Event) {
         ext.value = `.${splitname[splitname.length-1]}`
 
         downloadForm.name = result.value.name.replace(ext.value, '')
-        downloadForm.location = result.value.location
+        downloadForm.location = result.value.location.split('/').toSpliced(-1).join('/')
     }
 }
 
@@ -101,8 +100,10 @@ async function download(e: Event) {
     
     if (result.value) {
         result.value.name = downloadForm.name + ext.value
+        result.value.location = `${downloadForm.location}/${result.value.name}`
 
-        await downloader.download(result.value.id)
+        await downloader.download(result.value.id, result.value.name, result.value.location)
+
         emits('fetched', result.value)
     }
 }
@@ -132,7 +133,7 @@ function close(e: Event) {
                         </Input>
                         <Input v-model="ext" class="basis-2/12 disabled:opacity-100 bg-secondary disabled:cursor-default" disabled />
                     </div>
-                    <Input v-model="downloadForm.location" :class="`bg-secondary mt-2 ${downloadValidation.location.$error && 'border-destructive focus-visible:ring-destructive'}`">
+                    <Input disabled v-model="downloadForm.location" :class="`bg-secondary mt-2 ${downloadValidation.location.$error && 'border-destructive focus-visible:ring-destructive'}`">
                         <template v-slot:append-icon>
                             <i-fluent:folder-28-regular class="bg-secondary w-[1.75rem]" />
                         </template>

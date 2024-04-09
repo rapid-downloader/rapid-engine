@@ -15,7 +15,9 @@ type (
 	Entry interface {
 		ID() string
 		Name() string
+		SetName(name string)
 		Location() string
+		SetLocation(location string)
 		Size() int64
 		Type() string  // document, compressed, audio, video, image, other, etc
 		URL() string   // url which the entry downloaded from
@@ -166,8 +168,16 @@ func (e *entry) Name() string {
 	return e.Name_
 }
 
+func (e *entry) SetName(name string) {
+	e.Name_ = name
+}
+
 func (e *entry) Location() string {
 	return e.Location_
+}
+
+func (e *entry) SetLocation(location string) {
+	e.Location_ = location
 }
 
 func (e *entry) Size() int64 {

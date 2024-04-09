@@ -65,6 +65,24 @@ func (s *downloaderService) download(ctx *fiber.Ctx) error {
 		return response.NotFound(ctx)
 	}
 
+	name := ctx.Query("name")
+	if name != "" {
+		entry.SetName(name)
+		if err := s.memstore.Set(id, entry); err != nil {
+			return response.InternalServerError(ctx, err)
+		}
+	}
+
+	location := ctx.Query("location")
+	if location != "" {
+		entry.SetLocation(location)
+		if err := s.memstore.Set(id, entry); err != nil {
+			return response.InternalServerError(ctx, err)
+		}
+	}
+
+	logger.Println(entry, ctx.Queries())
+
 	status := "Downloading"
 	err := s.store.Update(entry.ID(), entryApi.UpdateDownload{
 		Status: &status,

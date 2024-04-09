@@ -13,8 +13,6 @@ import (
 	"github.com/rapid-downloader/rapid/entry"
 	response "github.com/rapid-downloader/rapid/helper"
 	"github.com/rapid-downloader/rapid/log"
-	"github.com/rapid-downloader/rapid/setting"
-	"github.com/rapid-downloader/rapid/utils"
 )
 
 const (
@@ -86,10 +84,10 @@ func (s *entryService) getEntry(ctx *fiber.Ctx) error {
 }
 
 func (s *entryService) getAllEntry(ctx *fiber.Ctx) error {
-	setting := setting.Get()
-	page := utils.Parse(ctx.Query("page")).Int(1)
+	page := ctx.QueryInt("page", 1)
+	limit := ctx.QueryInt("limit", 25)
 
-	res := s.store.GetAll(page, setting.DisplayedEntriesCount)
+	res := s.store.GetAll(page, limit)
 	if res == nil {
 		return response.Success(ctx, fiber.StatusNoContent)
 	}
