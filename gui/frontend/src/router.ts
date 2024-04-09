@@ -6,6 +6,7 @@ const router = createRouter({
         { path: '/', component: () => import("./module/home/Home.vue") },
         { path: '/log', component: () => import("./module/log/Log.vue") },
         { path: '/download/:id', component: () => import("./module/download/Download.vue") },
+        { path: '/setting', component: () => import("./module/setting/Setting.vue") },
     ]
 })
 
